@@ -28,7 +28,7 @@ module MythicBeasts
 
     def fetch_token
       response = connection.post do |req|
-        req.body = { grant_type: 'client_credentials' }
+        req.body = {grant_type: "client_credentials"}
         req.options.timeout = 10
       end
 

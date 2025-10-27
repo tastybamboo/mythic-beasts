@@ -8,7 +8,7 @@ module MythicBeasts
 
     # List all VPS servers
     def list
-      client.get('/api/vps')
+      client.get("/api/vps")
     end
 
     # Get details of a specific VPS
@@ -30,7 +30,7 @@ module MythicBeasts
       }
       body[:ssh_key] = ssh_key if ssh_key
 
-      client.post('/api/vps', body: body)
+      client.post("/api/vps", body: body)
     end
 
     # Start a VPS

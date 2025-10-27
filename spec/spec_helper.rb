@@ -1,15 +1,9 @@
 require "bundler/setup"
 require "mythic_beasts"
 require "webmock/rspec"
-require "vcr"
 
-VCR.configure do |config|
-  config.cassette_library_dir = "spec/fixtures/vcr_cassettes"
-  config.hook_into :webmock
-  config.configure_rspec_metadata!
-  config.filter_sensitive_data("<API_KEY>") { ENV["MYTHIC_BEASTS_API_KEY"] }
-  config.filter_sensitive_data("<API_SECRET>") { ENV["MYTHIC_BEASTS_API_SECRET"] }
-end
+# Disable all HTTP requests by default (WebMock)
+WebMock.disable_net_connect!(allow_localhost: true)
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

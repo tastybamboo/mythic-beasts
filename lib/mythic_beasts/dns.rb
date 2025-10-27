@@ -8,7 +8,7 @@ module MythicBeasts
 
     # List all DNS zones
     def zones
-      client.get('/dns/v2/zones')
+      client.get("/dns/v2/zones")
     end
 
     # Get all records for a zone
@@ -25,7 +25,7 @@ module MythicBeasts
     # records: Array of hashes with keys: host, ttl, type, data
     # Example: [{ host: 'www', ttl: 300, type: 'A', data: '1.2.3.4' }]
     def create_records(zone, records)
-      client.post("/dns/v2/zones/#{zone}/records", body: { records: records })
+      client.post("/dns/v2/zones/#{zone}/records", body: {records: records})
     end
 
     # Replace record(s)
@@ -34,7 +34,7 @@ module MythicBeasts
       path += "/#{host}" if host
       path += "/#{type}" if type
 
-      client.put(path, body: { records: records })
+      client.put(path, body: {records: records})
     end
 
     # Delete record(s)
@@ -43,7 +43,7 @@ module MythicBeasts
       path += "/#{host}" if host
       path += "/#{type}" if type
 
-      params = data ? { data: data } : {}
+      params = data ? {data: data} : {}
       client.delete(path, params: params)
     end
 
@@ -54,23 +54,23 @@ module MythicBeasts
 
     # Convenience methods for common record types
     def create_a_record(zone, host, ip, ttl: 300)
-      create_records(zone, [{ host: host, ttl: ttl, type: 'A', data: ip }])
+      create_records(zone, [{host: host, ttl: ttl, type: "A", data: ip}])
     end
 
     def create_aaaa_record(zone, host, ip, ttl: 300)
-      create_records(zone, [{ host: host, ttl: ttl, type: 'AAAA', data: ip }])
+      create_records(zone, [{host: host, ttl: ttl, type: "AAAA", data: ip}])
     end
 
     def create_cname_record(zone, host, target, ttl: 300)
-      create_records(zone, [{ host: host, ttl: ttl, type: 'CNAME', data: target }])
+      create_records(zone, [{host: host, ttl: ttl, type: "CNAME", data: target}])
     end
 
     def create_mx_record(zone, host, priority, mail_server, ttl: 300)
-      create_records(zone, [{ host: host, ttl: ttl, type: 'MX', data: "#{priority} #{mail_server}" }])
+      create_records(zone, [{host: host, ttl: ttl, type: "MX", data: "#{priority} #{mail_server}"}])
     end
 
     def create_txt_record(zone, host, text, ttl: 300)
-      create_records(zone, [{ host: host, ttl: ttl, type: 'TXT', data: text }])
+      create_records(zone, [{host: host, ttl: ttl, type: "TXT", data: text}])
     end
   end
 end

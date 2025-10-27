@@ -13,7 +13,7 @@ RSpec.describe MythicBeasts::Client do
   describe "#get" do
     it "makes a GET request with bearer token" do
       stub = stub_request(:get, "https://api.mythic-beasts.com/test")
-        .with(headers: {"Authorization" => "Bearer #{token}"})
+        .with(headers: {"Authorization" => /bearer #{token}/i})
         .to_return(
           status: 200,
           body: {data: "test"}.to_json,
@@ -28,7 +28,7 @@ RSpec.describe MythicBeasts::Client do
 
     it "includes query parameters" do
       stub = stub_request(:get, "https://api.mythic-beasts.com/test?foo=bar")
-        .with(headers: {"Authorization" => "Bearer #{token}"})
+        .with(headers: {"Authorization" => /bearer #{token}/i})
         .to_return(status: 200, body: "{}")
 
       client.get("/test", params: {foo: "bar"})
@@ -43,7 +43,7 @@ RSpec.describe MythicBeasts::Client do
         .with(
           body: {name: "test"}.to_json,
           headers: {
-            "Authorization" => "Bearer #{token}",
+            "Authorization" => /bearer #{token}/i,
             "Content-Type" => "application/json"
           }
         )

@@ -36,14 +36,18 @@ module MythicBeasts
       end
 
       JSON.parse(response.body) if response.body && !response.body.empty?
-    rescue Faraday::UnauthorizedError
-      raise AuthenticationError, "Invalid credentials"
-    rescue Faraday::NotFoundError => e
-      raise NotFoundError, e.message
-    rescue Faraday::BadRequestError => e
-      raise ValidationError, e.message
-    rescue Faraday::TooManyRequestsError => e
-      raise RateLimitError, e.message
+    rescue Faraday::UnauthorizedError, Faraday::ClientError => e
+      if e.response&.dig(:status) == 401
+        raise AuthenticationError, "Invalid credentials"
+      elsif e.response&.dig(:status) == 404
+        raise NotFoundError, e.message
+      elsif e.response&.dig(:status) == 400
+        raise ValidationError, e.message
+      elsif e.response&.dig(:status) == 429
+        raise RateLimitError, e.message
+      else
+        raise Error, e.message
+      end
     rescue Faraday::ServerError => e
       raise ServerError, e.message
     end
