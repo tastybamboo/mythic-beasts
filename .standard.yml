@@ -1,0 +1,15 @@
+# Standard Ruby style guide configuration
+# https://github.com/standardrb/standard
+
+ruby_version: 3.0
+
+fix: true
+
+parallel: true
+
+format: progress
+
+ignore:
+  - 'vendor/**/*'
+  - 'tmp/**/*'
+  - 'node_modules/**/*'
