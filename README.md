@@ -124,16 +124,16 @@ console = MythicBeasts.client.vps.console('my-server')
 MythicBeasts.client.vps.delete('my-server')
 ```
 
-#### IPv6-Only Servers (Cost Savings)
+#### IPv6-Only Servers
 
 Provision cheaper IPv6-only servers without IPv4 addresses. Perfect for services accessible via Mythic Beasts' IPv4-to-IPv6 proxy:
 
 ```ruby
-# Create an IPv6-only VPS (cheaper!)
+# Create an IPv6-only VPS
 MythicBeasts.client.vps.create(
   name: 'my-ipv6-server',
   type: 'VPS-2',
-  ipv4: false,  # No IPv4 address = lower cost
+  ipv4: false,
   ssh_key: 'ssh-rsa AAAAB3...',
   location: 'london'
 )
@@ -242,7 +242,7 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/tastyb
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
-Copyright (c) 2025 Otaina Limited
+Copyright © 2025, Otaina Limited
 
 ## Resources
 
