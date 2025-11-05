@@ -181,7 +181,6 @@ This will:
 
 The pre-push hooks automatically run:
 
-- `bundle update` - Update dependencies
 - `bundle exec standardrb` - Ruby code linting
 - `npx markdownlint-cli2 "**/*.md"` - Markdown linting
 - `bundle exec rspec` - Test suite

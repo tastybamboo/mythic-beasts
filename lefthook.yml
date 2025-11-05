@@ -1,8 +1,6 @@
 pre-push:
   parallel: true
   commands:
-    bundle-update:
-      run: bundle update
     standardrb:
       run: bundle exec standardrb
     markdownlint:
