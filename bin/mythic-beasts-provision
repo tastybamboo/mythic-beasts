@@ -143,9 +143,10 @@ begin
     specs = p["specs"]
     cores = specs["cores"]
     ram_gb = specs["ram"] / 1024
-    bandwidth_gb = specs["bandwidth"] / 1024
+    bandwidth_mb = specs["bandwidth"]
+    # Display bandwidth in MB since small values look better than 0GB
     {
-      name: "#{code.ljust(10)} - #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_gb}GB/mo bandwidth",
+      name: "#{code.ljust(10)} - #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_mb}MB/mo bandwidth",
       value: code
     }
   end
