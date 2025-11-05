@@ -10,11 +10,13 @@ require "json"
 $stdout.sync = true
 $stderr.sync = true
 
-prompt = TTY::Prompt.new
+# Configure tty-prompt with explicit width to avoid wrapping issues in some terminals
+prompt = TTY::Prompt.new(active_color: :cyan, enable_color: true, interrupt: :exit)
 
-puts "╔════════════════════════════════════════════════════════════════╗"
-puts "║         Mythic Beasts VPS Interactive Provisioning            ║"
-puts "╚════════════════════════════════════════════════════════════════╝"
+puts ""
+puts "═" * 60
+puts "Mythic Beasts VPS Interactive Provisioning"
+puts "═" * 60
 puts ""
 
 # Load credentials
@@ -85,8 +87,9 @@ begin
   ssd_sizes = disk_sizes_data["ssd"] || disk_sizes_data[:ssd] || []
 
   # Interactive selection
+  puts ""
   puts "📦 SELECT VPS PRODUCT"
-  puts "─" * 64
+  puts ""
   product_choices = products.map do |p|
     code = p["code"]
     specs = p["specs"]
@@ -101,7 +104,7 @@ begin
 
   puts ""
   puts "🌍 SELECT ZONE (DATACENTER)"
-  puts "─" * 64
+  puts ""
   zone_choices = zones.map do |code, info|
     description = info["description"] || info[:description]
     {
@@ -113,7 +116,7 @@ begin
 
   puts ""
   puts "💿 SELECT OS IMAGE"
-  puts "─" * 64
+  puts ""
   image_choices = images.map do |img|
     name = img["name"]
     description = img["description"]
@@ -127,7 +130,7 @@ begin
 
   puts ""
   puts "💾 SELECT DISK SIZE"
-  puts "─" * 64
+  puts ""
   common_sizes = [5120, 10240, 15360, 20480, 30720, 40960, 61440, 81920, 102400, 204800]
   disk_choices = common_sizes.select { |size| ssd_sizes.include?(size) }.map do |size|
     gb = size / 1024
@@ -140,7 +143,7 @@ begin
 
   puts ""
   puts "🌐 NETWORK CONFIGURATION"
-  puts "─" * 64
+  puts ""
   selected_ipv4 = prompt.yes?("Include IPv4 address?") do |q|
     q.default true
     q.suffix " (No = IPv6-only, cheaper but requires proxy for web)"
@@ -148,27 +151,25 @@ begin
 
   puts ""
   puts "📝 SERVER NAME"
-  puts "─" * 64
+  puts ""
   selected_name = prompt.ask("Enter server name:", required: true) do |q|
     q.validate(/\A[a-z0-9-]+\z/, "Only lowercase letters, numbers, and hyphens allowed")
   end
 
   # Summary
   puts ""
-  puts "╔════════════════════════════════════════════════════════════════╗"
-  puts "║                    CONFIGURATION SUMMARY                       ║"
-  puts "╚════════════════════════════════════════════════════════════════╝"
+  puts "═" * 60
+  puts "CONFIGURATION SUMMARY"
+  puts "═" * 60
   puts ""
-  puts "  Product:    #{selected_product}"
-  puts "  Zone:       #{selected_zone}"
-  puts "  Image:      #{selected_image || '[none - manual install]'}"
-  puts "  Disk:       #{selected_disk_size / 1024} GB (#{selected_disk_size} MB)"
-  puts "  IPv4:       #{selected_ipv4 ? 'Yes' : 'No (IPv6-only)'}"
-  puts "  Name:       #{selected_name}"
-  puts "  Hostname:   #{selected_name}"
-  puts "  SSH Key:    #{ssh_key[0..50]}..."
+  puts "Product:    #{selected_product}"
+  puts "Zone:       #{selected_zone}"
+  puts "Image:      #{selected_image || '[none - manual install]'}"
+  puts "Disk:       #{selected_disk_size / 1024}GB"
+  puts "IPv4:       #{selected_ipv4 ? 'Yes' : 'No (IPv6-only)'}"
+  puts "Name:       #{selected_name}"
+  puts "SSH Key:    #{ssh_key[0..50]}..."
   puts ""
-  puts "─" * 64
 
   unless prompt.yes?("Proceed with provisioning?")
     puts "❌ Provisioning cancelled."
