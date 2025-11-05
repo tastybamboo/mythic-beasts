@@ -16,12 +16,18 @@ end
 puts "🔍 Mythic Beasts VPS Options\n\n"
 
 begin
-  puts "📦 Available Products (monthly billing):"
+  puts "📦 Available Products:"
   puts "=" * 60
-  products = MythicBeasts.client.vps.products(billing: "monthly")
+  products = MythicBeasts.client.vps.products
   if products.is_a?(Array)
     products.each do |product|
-      puts "  #{product["code"] || product[:code]}: #{product["description"] || product[:description]}"
+      code = product["code"] || product[:code]
+      desc = product["description"] || product[:description]
+      specs = product["specs"] || product[:specs] || {}
+      ram = specs["ram"] || specs[:ram]
+      cores = specs["cores"] || specs[:cores]
+      puts "  #{code}: #{desc}"
+      puts "    RAM: #{ram}MB, Cores: #{cores}" if ram && cores
     end
   else
     puts "  #{JSON.pretty_generate(products)}"
@@ -45,14 +51,20 @@ rescue => e
   puts "  Error: #{e.message}"
 end
 
-puts "\n💾 Available Disk Sizes (SSD):"
+puts "\n💾 Available Disk Sizes:"
 puts "=" * 60
 begin
-  disk_sizes = MythicBeasts.client.vps.disk_sizes(storage_type: "ssd")
-  if disk_sizes.is_a?(Array)
-    disk_sizes.each do |size|
-      gb = size.to_i / 1024
-      puts "  - #{size} MB (#{gb} GB)"
+  disk_sizes = MythicBeasts.client.vps.disk_sizes
+  if disk_sizes.is_a?(Hash)
+    ["ssd", "hdd"].each do |type|
+      sizes = disk_sizes[type] || disk_sizes[type.to_sym] || []
+      if sizes.any?
+        puts "  #{type.upcase}:"
+        sizes.sort.each do |size|
+          gb = size.to_i / 1024
+          puts "    - #{size} MB (#{gb} GB)"
+        end
+      end
     end
   else
     puts "  #{JSON.pretty_generate(disk_sizes)}"
