@@ -63,14 +63,9 @@ module MythicBeasts
       client.get("/api/vps/#{server_name}/console")
     end
 
-    # List available zones/locations for VPS provisioning
+    # List available zones/datacenters for VPS provisioning
     def zones
-      client.get("/api/vps/zones")
-    end
-
-    # List available VPS types/plans
-    def types
-      client.get("/api/vps/types")
+      client.get("/beta/vps/zones")
     end
 
     # List available OS images for VPS provisioning

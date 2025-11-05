@@ -77,9 +77,11 @@ puts "\n🌍 Available Zones:"
 puts "=" * 60
 begin
   zones = MythicBeasts.client.vps.zones
-  if zones.is_a?(Array)
-    zones.each do |zone|
-      puts "  - #{zone}"
+  if zones.is_a?(Hash)
+    zones.each do |code, info|
+      info["name"] || info[:name]
+      description = info["description"] || info[:description]
+      puts "  #{code}: #{description}"
     end
   else
     puts "  #{JSON.pretty_generate(zones)}"

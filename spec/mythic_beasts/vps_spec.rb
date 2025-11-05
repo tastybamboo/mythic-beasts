@@ -109,15 +109,29 @@ RSpec.describe MythicBeasts::VPS do
 
   describe "#zones" do
     it "fetches available zones/datacenters" do
-      expect(client).to receive(:get).with("/api/vps/zones")
+      expect(client).to receive(:get).with("/beta/vps/zones")
       vps.zones
     end
   end
 
-  describe "#types" do
-    it "fetches available VPS types/plans" do
-      expect(client).to receive(:get).with("/api/vps/types")
-      vps.types
+  describe "#images" do
+    it "fetches available OS images" do
+      expect(client).to receive(:get).with("/beta/vps/images")
+      vps.images
+    end
+  end
+
+  describe "#disk_sizes" do
+    it "fetches available disk sizes" do
+      expect(client).to receive(:get).with("/beta/vps/disk-sizes")
+      vps.disk_sizes
+    end
+  end
+
+  describe "#products" do
+    it "fetches available products" do
+      expect(client).to receive(:get).with("/beta/vps/products")
+      vps.products
     end
   end
 end
