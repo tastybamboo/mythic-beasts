@@ -92,8 +92,9 @@ begin
     specs = p["specs"]
     cores = specs["cores"]
     ram_gb = specs["ram"] / 1024
+    bandwidth_gb = specs["bandwidth"]
     {
-      name: "#{code.ljust(8)} - #{cores}c #{ram_gb}GB RAM",
+      name: "#{code}: #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_gb}GB/month bandwidth",
       value: code
     }
   end
@@ -118,11 +119,11 @@ begin
     name = img["name"]
     description = img["description"]
     {
-      name: description,
+      name: "#{description} (#{name})",
       value: name
     }
   end
-  image_choices << {name: "[No OS - Manual install]", value: nil}
+  image_choices << {name: "[No OS - Manual installation required]", value: nil}
   selected_image = prompt.select("Choose an image:", image_choices, per_page: 12)
 
   puts ""
@@ -132,7 +133,7 @@ begin
   disk_choices = common_sizes.select { |size| ssd_sizes.include?(size) }.map do |size|
     gb = size / 1024
     {
-      name: "#{gb}GB SSD",
+      name: "#{gb} GB (#{size} MB)",
       value: size
     }
   end
