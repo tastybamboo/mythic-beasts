@@ -144,9 +144,14 @@ begin
     cores = specs["cores"]
     ram_gb = specs["ram"] / 1024
     bandwidth_mb = specs["bandwidth"]
-    # Display bandwidth in MB since small values look better than 0GB
+    # Display bandwidth in GB if >= 1024MB, otherwise MB
+    bandwidth_display = if bandwidth_mb >= 1024
+      "#{bandwidth_mb / 1024}GB/mo"
+    else
+      "#{bandwidth_mb}MB/mo"
+    end
     {
-      name: "#{code.ljust(10)} - #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_mb}MB/mo bandwidth",
+      name: "#{code.ljust(10)} - #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_display} bandwidth",
       value: code
     }
   end
