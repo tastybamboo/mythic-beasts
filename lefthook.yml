@@ -6,7 +6,7 @@ pre-push:
     standardrb:
       run: bundle exec standardrb
     markdownlint:
-      run: bundle exec mdl -s .mdl.rb .
+      run: npx markdownlint-cli2 "**/*.md"
     tests:
       run: bundle exec rspec
     bundler-audit:

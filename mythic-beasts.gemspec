@@ -31,6 +31,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "pry", "~> 0.14"
   spec.add_development_dependency "lefthook", "~> 1.5"
-  spec.add_development_dependency "mdl", "~> 0.13"
   spec.add_development_dependency "bundler-audit", "~> 0.9"
 end

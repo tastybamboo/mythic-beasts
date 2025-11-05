@@ -183,7 +183,7 @@ The pre-push hooks automatically run:
 
 - `bundle update` - Update dependencies
 - `bundle exec standardrb` - Ruby code linting
-- `bundle exec mdl .` - Markdown linting
+- `npx markdownlint-cli2 "**/*.md"` - Markdown linting
 - `bundle exec rspec` - Test suite
 - `bundle exec bundler-audit check --update` - Security audit
 
@@ -192,7 +192,7 @@ You can also run these checks manually:
 ```bash
 bundle exec rspec                           # Run tests
 bundle exec standardrb                      # Run linter
-bundle exec mdl .                           # Run markdown linter
+npx markdownlint-cli2 "**/*.md"             # Run markdown linter
 bundle exec bundler-audit check --update    # Run security audit
 ```
 
