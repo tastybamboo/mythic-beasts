@@ -93,4 +93,18 @@ RSpec.describe MythicBeasts::VPS do
       vps.console("my-server")
     end
   end
+
+  describe "#zones" do
+    it "fetches available zones/datacenters" do
+      expect(client).to receive(:get).with("/api/vps/zones")
+      vps.zones
+    end
+  end
+
+  describe "#types" do
+    it "fetches available VPS types/plans" do
+      expect(client).to receive(:get).with("/api/vps/types")
+      vps.types
+    end
+  end
 end
