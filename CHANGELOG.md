@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed in Unreleased
 
 - Zones endpoint now uses correct `/beta/vps/zones` path
+- Interactive CLI terminal width detection issues in Ghostty and other terminals
 
 ## [0.1.3] - 2025-11-05
 
