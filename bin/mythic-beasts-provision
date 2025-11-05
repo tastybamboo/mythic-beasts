@@ -10,16 +10,13 @@ require "json"
 $stdout.sync = true
 $stderr.sync = true
 
-# Configure tty-prompt with explicit width to avoid wrapping issues in Ghostty
-# Use terminal width if available, otherwise default to 120
-terminal_width = ENV["COLUMNS"]&.to_i || 120
+# Configure tty-prompt with Ghostty-compatible settings
 prompt = TTY::Prompt.new(
   active_color: :cyan,
   enable_color: true,
   interrupt: :exit,
   track_history: false,
-  symbols: {marker: "▸"},
-  width: terminal_width
+  symbols: {marker: "▸"}
 )
 
 puts ""
