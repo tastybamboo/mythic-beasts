@@ -18,19 +18,24 @@ module MythicBeasts
 
     # Create a new VPS
     # Options:
-    #   - name: Server name
-    #   - type: Server type (e.g., 'VPS-1', 'VPS-2')
-    #   - disk: Disk size in GB
-    #   - ssh_key: SSH public key for access
-    def create(name:, type:, ssh_key: nil, **options)
+    #   - product: Server product (e.g., 'VPS-1', 'VPS-2') - REQUIRED
+    #   - name: Friendly name for the server
+    #   - hostname: Hostname for the server
+    #   - ssh_keys: SSH public key(s) for access
+    #   - zone: Datacentre code (e.g., 'london', 'cambridge')
+    #   - ipv4: Boolean - allocate IPv4 address (default true)
+    #   - image: Operating system image name
+    #   - disk_size: Disk size in MB
+    #   And other optional parameters...
+    def create(product:, name: nil, ssh_keys: nil, **options)
       body = {
-        name: name,
-        type: type,
+        product: product,
         **options
       }
-      body[:ssh_key] = ssh_key if ssh_key
+      body[:name] = name if name
+      body[:ssh_keys] = ssh_keys if ssh_keys
 
-      client.post("/api/vps", body: body)
+      client.post("/beta/vps/servers", body: body)
     end
 
     # Start a VPS
