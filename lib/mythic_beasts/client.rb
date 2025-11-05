@@ -31,6 +31,7 @@ module MythicBeasts
     def request(method, path, body: {}, params: {})
       response = connection.send(method) do |req|
         req.url path
+        req.headers["Authorization"] = "Bearer #{auth.token}"
         req.params = params if params.any?
         req.body = body.to_json if body.any?
       end
@@ -55,7 +56,6 @@ module MythicBeasts
 
     def connection
       @connection ||= Faraday.new(url: API_BASE_URL) do |conn|
-        conn.request :authorization, :bearer, -> { auth.token }
         conn.request :json
         conn.request :retry, {
           max: 3,
