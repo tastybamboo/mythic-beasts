@@ -9,13 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added in Unreleased
 
-- Interactive CLI tool `mythic-beasts-provision` with arrow key navigation for VPS provisioning
-- `tty-prompt` dependency for interactive menus
+- Interactive CLI tool `mythic-beasts-provision` with numbered menu navigation for VPS provisioning
+
+### Changed in Unreleased
+
+- Replaced tty-prompt with simple numbered menus for better terminal compatibility (especially Ghostty)
 
 ### Fixed in Unreleased
 
 - Zones endpoint now uses correct `/beta/vps/zones` path
-- Interactive CLI terminal width detection issues in Ghostty and other terminals
 
 ## [0.1.3] - 2025-11-05
 

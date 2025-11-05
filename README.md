@@ -88,7 +88,7 @@ MythicBeasts.client.dns.dynamic_update('home.example.com')
 
 #### Interactive CLI Tool (Recommended)
 
-The gem includes an interactive CLI for easy VPS provisioning with arrow key navigation:
+The gem includes an interactive CLI for easy VPS provisioning with numbered menus:
 
 ```bash
 # With 1Password
@@ -100,7 +100,7 @@ export MYTHIC_BEASTS_API_SECRET="your_secret"
 mythic-beasts-provision
 ```
 
-The CLI will guide you through:
+The CLI will guide you through selecting options by number:
 
 - Selecting product (VPS size)
 - Choosing datacenter/zone
