@@ -87,6 +87,14 @@ MythicBeasts.client.dns.dynamic_update('home.example.com')
 ### VPS Management
 
 ```ruby
+# List available zones/datacenters
+zones = MythicBeasts.client.vps.zones
+# => ["london", "cambridge", "amsterdam", "fremont"]
+
+# List available VPS types/plans
+types = MythicBeasts.client.vps.types
+# => ["VPS-1", "VPS-2", "VPS-3", ...]
+
 # List all VPS servers
 servers = MythicBeasts.client.vps.list
 
@@ -97,7 +105,11 @@ server = MythicBeasts.client.vps.get('my-server')
 MythicBeasts.client.vps.create(
   name: 'my-new-server',
   type: 'VPS-2',
-  ssh_key: 'ssh-rsa AAAAB3...'
+  ssh_key: 'ssh-rsa AAAAB3...',
+  location: 'london',  # Optional: specify datacenter
+  service: 'my-service',  # Optional: service/project name
+  description: 'My test server',  # Optional: server description
+  notes: 'Any additional notes'  # Optional: special requests
 )
 
 # Control servers
@@ -137,6 +149,21 @@ Available error classes:
 - `MythicBeasts::ValidationError` - Invalid parameters
 - `MythicBeasts::RateLimitError` - Rate limit exceeded
 - `MythicBeasts::ServerError` - Server-side error
+
+## Examples
+
+See the `examples/` directory for complete working examples:
+
+- `examples/list_zones_and_types.rb` - List available zones and VPS types
+- `examples/provision_vps.rb` - Provision a new VPS server
+
+Run examples with:
+
+```bash
+export MYTHIC_BEASTS_API_KEY=your_key
+export MYTHIC_BEASTS_API_SECRET=your_secret
+ruby examples/list_zones_and_types.rb
+```
 
 ## Development
 
