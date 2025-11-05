@@ -72,5 +72,26 @@ module MythicBeasts
     def types
       client.get("/api/vps/types")
     end
+
+    # List available OS images for VPS provisioning
+    def images
+      client.get("/vps/images")
+    end
+
+    # List available disk sizes
+    # storage_type: "ssd", "hdd", "ssd-private", or "hdd-private"
+    def disk_sizes(storage_type: nil)
+      path = "/vps/disk-sizes"
+      path += "/#{storage_type}" if storage_type
+      client.get(path)
+    end
+
+    # List available products
+    # billing: "on-demand", "monthly", "quarterly", or "yearly"
+    def products(billing: nil)
+      path = "/vps/products"
+      path += "/#{billing}" if billing
+      client.get(path)
+    end
   end
 end
