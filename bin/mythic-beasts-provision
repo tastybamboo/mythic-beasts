@@ -1,0 +1,280 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "mythic_beasts"
+require "tty-prompt"
+require "json"
+
+# Force unbuffered output
+$stdout.sync = true
+$stderr.sync = true
+
+prompt = TTY::Prompt.new
+
+puts "╔════════════════════════════════════════════════════════════════╗"
+puts "║         Mythic Beasts VPS Interactive Provisioning            ║"
+puts "╚════════════════════════════════════════════════════════════════╝"
+puts ""
+
+# Load credentials
+unless ENV["MYTHIC_BEASTS_API_KEY"] && ENV["MYTHIC_BEASTS_API_SECRET"]
+  puts "⚠️  API credentials not found in environment variables"
+  puts ""
+  puts "Please set MYTHIC_BEASTS_API_KEY and MYTHIC_BEASTS_API_SECRET"
+  puts "or load them from .env file using dotenv, or use 1Password:"
+  puts ""
+  puts "  op run --env-file=.env.1password -- mythic-beasts-provision"
+  puts ""
+  exit 1
+end
+
+# Get SSH public key
+ssh_key = nil
+if ENV["SSH_PUBLIC_KEY"] && !ENV["SSH_PUBLIC_KEY"].empty?
+  ssh_key = ENV["SSH_PUBLIC_KEY"].strip
+  puts "✓ Using SSH key from SSH_PUBLIC_KEY environment variable"
+else
+  ssh_key_path = File.expand_path("~/.ssh/id_rsa.pub")
+  unless File.exist?(ssh_key_path)
+    ssh_key_path = File.expand_path("~/.ssh/id_ed25519.pub")
+  end
+
+  if File.exist?(ssh_key_path)
+    ssh_key = File.read(ssh_key_path).strip
+    puts "✓ Found SSH key at #{ssh_key_path}"
+  else
+    puts "❌ No SSH public key found!"
+    puts ""
+    puts "Options:"
+    puts "1. Add SSH_PUBLIC_KEY to environment"
+    puts "2. Generate a local key: ssh-keygen -t ed25519"
+    exit 1
+  end
+end
+
+# Configure client
+MythicBeasts.configure do |config|
+  config.api_key = ENV["MYTHIC_BEASTS_API_KEY"]
+  config.api_secret = ENV["MYTHIC_BEASTS_API_SECRET"]
+end
+
+puts ""
+puts "🔍 Fetching available VPS options from Mythic Beasts API..."
+puts ""
+
+begin
+  # Fetch all options
+  products_data = MythicBeasts.client.vps.products
+  images_data = MythicBeasts.client.vps.images
+  zones_data = MythicBeasts.client.vps.zones
+  disk_sizes_data = MythicBeasts.client.vps.disk_sizes
+
+  # Parse products
+  products = products_data.is_a?(Hash) ? products_data.values : products_data
+  products = products.sort_by { |p| p["specs"]["ram"] }
+
+  # Parse images
+  images = images_data.is_a?(Hash) ? images_data.values : images_data
+  images = images.sort_by { |i| i["description"] }
+
+  # Parse zones
+  zones = zones_data.is_a?(Hash) ? zones_data : {}
+
+  # Parse disk sizes
+  ssd_sizes = disk_sizes_data["ssd"] || disk_sizes_data[:ssd] || []
+
+  # Interactive selection
+  puts "📦 SELECT VPS PRODUCT"
+  puts "─" * 64
+  product_choices = products.map do |p|
+    code = p["code"]
+    specs = p["specs"]
+    cores = specs["cores"]
+    ram_gb = specs["ram"] / 1024
+    bandwidth_gb = specs["bandwidth"]
+    {
+      name: "#{code}: #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_gb}GB/month bandwidth",
+      value: code
+    }
+  end
+  selected_product = prompt.select("Choose a product:", product_choices, per_page: 10)
+
+  puts ""
+  puts "🌍 SELECT ZONE (DATACENTER)"
+  puts "─" * 64
+  zone_choices = zones.map do |code, info|
+    description = info["description"] || info[:description]
+    {
+      name: "#{code} - #{description}",
+      value: code
+    }
+  end
+  selected_zone = prompt.select("Choose a zone:", zone_choices)
+
+  puts ""
+  puts "💿 SELECT OS IMAGE"
+  puts "─" * 64
+  image_choices = images.map do |img|
+    name = img["name"]
+    description = img["description"]
+    {
+      name: "#{description} (#{name})",
+      value: name
+    }
+  end
+  image_choices << {name: "[No OS - Manual installation required]", value: nil}
+  selected_image = prompt.select("Choose an image:", image_choices, per_page: 12)
+
+  puts ""
+  puts "💾 SELECT DISK SIZE"
+  puts "─" * 64
+  common_sizes = [5120, 10240, 15360, 20480, 30720, 40960, 61440, 81920, 102400, 204800]
+  disk_choices = common_sizes.select { |size| ssd_sizes.include?(size) }.map do |size|
+    gb = size / 1024
+    {
+      name: "#{gb} GB (#{size} MB)",
+      value: size
+    }
+  end
+  selected_disk_size = prompt.select("Choose disk size:", disk_choices)
+
+  puts ""
+  puts "🌐 NETWORK CONFIGURATION"
+  puts "─" * 64
+  selected_ipv4 = prompt.yes?("Include IPv4 address?") do |q|
+    q.default true
+    q.suffix " (No = IPv6-only, cheaper but requires proxy for web)"
+  end
+
+  puts ""
+  puts "📝 SERVER NAME"
+  puts "─" * 64
+  selected_name = prompt.ask("Enter server name:", required: true) do |q|
+    q.validate(/\A[a-z0-9-]+\z/, "Only lowercase letters, numbers, and hyphens allowed")
+  end
+
+  # Summary
+  puts ""
+  puts "╔════════════════════════════════════════════════════════════════╗"
+  puts "║                    CONFIGURATION SUMMARY                       ║"
+  puts "╚════════════════════════════════════════════════════════════════╝"
+  puts ""
+  puts "  Product:    #{selected_product}"
+  puts "  Zone:       #{selected_zone}"
+  puts "  Image:      #{selected_image || '[none - manual install]'}"
+  puts "  Disk:       #{selected_disk_size / 1024} GB (#{selected_disk_size} MB)"
+  puts "  IPv4:       #{selected_ipv4 ? 'Yes' : 'No (IPv6-only)'}"
+  puts "  Name:       #{selected_name}"
+  puts "  Hostname:   #{selected_name}"
+  puts "  SSH Key:    #{ssh_key[0..50]}..."
+  puts ""
+  puts "─" * 64
+
+  unless prompt.yes?("Proceed with provisioning?")
+    puts "❌ Provisioning cancelled."
+    exit 0
+  end
+
+  puts ""
+  puts "🚀 Starting provisioning..."
+  puts ""
+
+  # Build request
+  create_params = {
+    product: selected_product,
+    name: selected_name,
+    hostname: selected_name,
+    ssh_keys: ssh_key,
+    zone: selected_zone,
+    disk_size: selected_disk_size
+  }
+
+  create_params[:image] = selected_image if selected_image
+  create_params[:ipv4] = false unless selected_ipv4
+
+  # Provision
+  result = MythicBeasts.client.vps.create(**create_params)
+
+  if result && result["location"]
+    puts "✓ Provisioning request submitted!"
+    puts "  Status URL: #{result["location"]}"
+    puts ""
+    puts "⏳ Polling for completion (max 5 minutes)..."
+
+    # Poll for completion
+    max_attempts = 60
+    attempt = 0
+    server_details = nil
+
+    while attempt < max_attempts
+      sleep 5
+      attempt += 1
+      print "\r  ⏱️  Checking status... #{attempt * 5}s"
+
+      begin
+        location_path = result["location"].sub("https://api.mythic-beasts.com", "")
+        server_details = MythicBeasts.client.get(location_path)
+        break
+      rescue MythicBeasts::NotFoundError
+        # Still provisioning
+        next
+      rescue => e
+        if e.message.include?("303")
+          # Success
+          break
+        else
+          raise
+        end
+      end
+    end
+
+    puts ""
+    puts ""
+    if server_details
+      puts "✅ SERVER PROVISIONED SUCCESSFULLY!"
+      puts "─" * 64
+
+      ipv4_addr = server_details["ipv4"] || server_details[:ipv4] || []
+      ipv6_addr = server_details["ipv6"] || server_details[:ipv6] || []
+
+      if ipv4_addr.any?
+        puts "  IPv4: #{ipv4_addr.first}"
+      end
+      if ipv6_addr.any?
+        puts "  IPv6: #{ipv6_addr.first}"
+      end
+
+      server_id = server_details["id"] || server_details[:id]
+      puts "  Server ID: #{server_id}" if server_id
+
+      # Save to file
+      output_file = "#{selected_name}-provision.json"
+      File.write(output_file, JSON.pretty_generate(server_details))
+      puts ""
+      puts "💾 Server details saved to: #{output_file}"
+    else
+      puts "⚠️  Provisioning timed out after #{max_attempts * 5} seconds"
+      puts "   Check Mythic Beasts control panel for status"
+    end
+  else
+    puts "✓ Provisioning completed!"
+    puts ""
+    puts JSON.pretty_generate(result)
+
+    output_file = "#{selected_name}-provision.json"
+    File.write(output_file, JSON.pretty_generate(result))
+    puts ""
+    puts "💾 Server details saved to: #{output_file}"
+  end
+
+rescue MythicBeasts::Error => e
+  puts ""
+  puts "❌ Error: #{e.message}"
+  exit 1
+rescue Interrupt
+  puts ""
+  puts ""
+  puts "❌ Cancelled by user"
+  exit 130
+end

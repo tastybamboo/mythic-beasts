@@ -86,14 +86,37 @@ MythicBeasts.client.dns.dynamic_update('home.example.com')
 
 ### VPS Management
 
-```ruby
-# List available zones/datacenters
-zones = MythicBeasts.client.vps.zones
-# => ["london", "cambridge", "amsterdam", "fremont"]
+#### Interactive CLI Tool (Recommended)
 
-# List available VPS types/plans
-types = MythicBeasts.client.vps.types
-# => ["VPS-1", "VPS-2", "VPS-3", ...]
+The gem includes an interactive CLI for easy VPS provisioning with arrow key navigation:
+
+```bash
+# With 1Password
+op run --env-file=.env.1password -- mythic-beasts-provision
+
+# Or with environment variables
+export MYTHIC_BEASTS_API_KEY="your_key"
+export MYTHIC_BEASTS_API_SECRET="your_secret"
+mythic-beasts-provision
+```
+
+The CLI will guide you through:
+
+- Selecting product (VPS size)
+- Choosing datacenter/zone
+- Picking OS image
+- Setting disk size
+- Network configuration (IPv4/IPv6)
+- Server naming
+
+#### Programmatic API
+
+```ruby
+# List available options
+zones = MythicBeasts.client.vps.zones
+products = MythicBeasts.client.vps.products
+images = MythicBeasts.client.vps.images
+disk_sizes = MythicBeasts.client.vps.disk_sizes
 
 # List all VPS servers
 servers = MythicBeasts.client.vps.list
@@ -103,13 +126,14 @@ server = MythicBeasts.client.vps.get('my-server')
 
 # Create a new VPS
 MythicBeasts.client.vps.create(
-  name: 'my-new-server',
-  type: 'VPS-2',
-  ssh_key: 'ssh-rsa AAAAB3...',
-  location: 'london',  # Optional: specify datacenter
-  service: 'my-service',  # Optional: service/project name
-  description: 'My test server',  # Optional: server description
-  notes: 'Any additional notes'  # Optional: special requests
+  product: 'VPSX16',  # Required: product code (e.g., VPSX16 = 2 cores, 4GB RAM)
+  name: 'my-new-server',  # Optional: friendly name
+  hostname: 'my-server',  # Optional: server hostname
+  ssh_keys: 'ssh-rsa AAAAB3...',  # Optional: SSH public key(s)
+  zone: 'cam',  # Optional: datacenter code (e.g., 'cam' for Cambridge)
+  image: 'cloudinit-debian-bookworm.raw.gz',  # Optional: OS image
+  disk_size: 20480,  # Required: disk size in MB
+  ipv4: false  # Optional: false for IPv6-only (cheaper)
 )
 
 # Control servers

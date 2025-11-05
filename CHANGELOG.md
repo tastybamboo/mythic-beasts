@@ -5,23 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added in Unreleased
+
+- Interactive CLI tool `mythic-beasts-provision` with arrow key navigation for VPS provisioning
+- `tty-prompt` dependency for interactive menus
+
+### Fixed in Unreleased
+
+- Zones endpoint now uses correct `/beta/vps/zones` path
+
 ## [0.1.3] - 2025-11-05
 
-### Fixed
+### Fixed in 0.1.3
 
 - Bearer token authentication for VPS API endpoints - now sets Authorization header on each request
 - VPS API endpoints now use correct `/beta/vps/*` paths instead of `/vps/*`
 - Location header now captured from 202 Accepted responses for polling async operations
 - Improved error messages to show API response body for better debugging
 
-### Added
+### Added to 0.1.3
 
 - `VPS#images` method to list available OS images from `/beta/vps/images`
 - `VPS#products` method to list available VPS products from `/beta/vps/products`
 - `VPS#disk_sizes` method to list available disk sizes from `/beta/vps/disk-sizes`
+- `VPS#zones` method to list available zones from `/beta/vps/zones`
 - Example script `list_vps_options.rb` to display all available VPS configuration options
 
-### Changed
+### Changed in 0.1.3
 
 - VPS creation now requires `product:` parameter (e.g., `VPSX16`) instead of `type:`
 - VPS creation now requires `ssh_keys:` parameter instead of `ssh_key:`
