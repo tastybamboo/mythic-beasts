@@ -21,54 +21,54 @@ RSpec.describe MythicBeasts::VPS do
   describe "#create" do
     it "creates a new VPS" do
       expected_body = {
-        name: "test-server",
-        type: "VPS-2"
+        product: "VPSX16",
+        name: "test-server"
       }
 
       expect(client).to receive(:post)
-        .with("/api/vps", body: expected_body)
+        .with("/beta/vps/servers", body: expected_body)
 
-      vps.create(name: "test-server", type: "VPS-2")
+      vps.create(product: "VPSX16", name: "test-server")
     end
 
-    it "includes SSH key when provided" do
+    it "includes SSH keys when provided" do
       expected_body = {
+        product: "VPSX16",
         name: "test-server",
-        type: "VPS-2",
-        ssh_key: "ssh-rsa AAAAB3..."
+        ssh_keys: "ssh-rsa AAAAB3..."
       }
 
       expect(client).to receive(:post)
-        .with("/api/vps", body: expected_body)
+        .with("/beta/vps/servers", body: expected_body)
 
-      vps.create(name: "test-server", type: "VPS-2", ssh_key: "ssh-rsa AAAAB3...")
+      vps.create(product: "VPSX16", name: "test-server", ssh_keys: "ssh-rsa AAAAB3...")
     end
 
     it "includes additional options" do
       expected_body = {
+        product: "VPSX16",
         name: "test-server",
-        type: "VPS-2",
-        disk: 50,
-        memory: 4096
+        disk_size: 20480,
+        zone: "london"
       }
 
       expect(client).to receive(:post)
-        .with("/api/vps", body: expected_body)
+        .with("/beta/vps/servers", body: expected_body)
 
-      vps.create(name: "test-server", type: "VPS-2", disk: 50, memory: 4096)
+      vps.create(product: "VPSX16", name: "test-server", disk_size: 20480, zone: "london")
     end
 
     it "supports IPv6-only servers without IPv4" do
       expected_body = {
+        product: "VPSX16",
         name: "test-server",
-        type: "VPS-2",
         ipv4: false
       }
 
       expect(client).to receive(:post)
-        .with("/api/vps", body: expected_body)
+        .with("/beta/vps/servers", body: expected_body)
 
-      vps.create(name: "test-server", type: "VPS-2", ipv4: false)
+      vps.create(product: "VPSX16", name: "test-server", ipv4: false)
     end
   end
 
