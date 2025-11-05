@@ -4,11 +4,16 @@
 require "bundler/setup"
 require "mythic_beasts"
 require "tty-prompt"
+require "tty-screen"
 require "json"
 
 # Force unbuffered output
 $stdout.sync = true
 $stderr.sync = true
+
+# Force TTY::Screen to detect proper dimensions for Ghostty
+# This works around terminal detection issues
+TTY::Screen.size # Force initialization
 
 # Configure tty-prompt with Ghostty-compatible settings
 prompt = TTY::Prompt.new(
@@ -101,8 +106,10 @@ begin
     specs = p["specs"]
     cores = specs["cores"]
     ram_gb = specs["ram"] / 1024
+    bandwidth_gb = specs["bandwidth"] / 1024
+    # Use longer format with bandwidth to prevent horizontal wrapping
     {
-      name: "#{code} (#{cores}c, #{ram_gb}GB)",
+      name: "#{code.ljust(10)} - #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_gb}GB bandwidth/month",
       value: code
     }
   end
@@ -141,7 +148,7 @@ begin
   disk_choices = common_sizes.select { |size| ssd_sizes.include?(size) }.map do |size|
     gb = size / 1024
     {
-      name: "#{gb}GB",
+      name: "#{gb}GB SSD storage (#{size}MB)",
       value: size
     }
   end
