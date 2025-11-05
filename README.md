@@ -124,6 +124,37 @@ console = MythicBeasts.client.vps.console('my-server')
 MythicBeasts.client.vps.delete('my-server')
 ```
 
+#### IPv6-Only Servers (Cost Savings)
+
+Provision cheaper IPv6-only servers without IPv4 addresses. Perfect for services accessible via Mythic Beasts' IPv4-to-IPv6 proxy:
+
+```ruby
+# Create an IPv6-only VPS (cheaper!)
+MythicBeasts.client.vps.create(
+  name: 'my-ipv6-server',
+  type: 'VPS-2',
+  ipv4: false,  # No IPv4 address = lower cost
+  ssh_key: 'ssh-rsa AAAAB3...',
+  location: 'london'
+)
+```
+
+**IPv4-to-IPv6 Proxy Setup:**
+
+1. Provision your IPv6-only VPS (as shown above)
+2. In Mythic Beasts control panel, configure IPv4-to-IPv6 proxy
+3. Point your domain's DNS to `proxy.mythic-beasts.com` (CNAME or ANAME)
+
+**Supported proxy protocols:**
+
+- HTTP (port 80) and HTTPS (port 443)
+- IMAPS (port 993) and SMTPS (port 465)
+- Gemini (port 1965)
+
+See `examples/ipv6_only_vps.rb` for a complete working example with setup instructions.
+
+**Documentation:** [IPv4 to IPv6 Proxy](https://www.mythic-beasts.com/support/topics/proxy)
+
 ## Error Handling
 
 The gem provides specific error classes:
@@ -157,6 +188,7 @@ See the `examples/` directory for complete working examples:
 
 - `examples/list_zones_and_types.rb` - List available zones and VPS types
 - `examples/provision_vps.rb` - Provision a new VPS server
+- `examples/ipv6_only_vps.rb` - Provision an IPv6-only VPS with proxy setup guide
 
 Run examples with:
 

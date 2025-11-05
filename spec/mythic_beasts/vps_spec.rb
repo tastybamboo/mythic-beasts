@@ -57,6 +57,19 @@ RSpec.describe MythicBeasts::VPS do
 
       vps.create(name: "test-server", type: "VPS-2", disk: 50, memory: 4096)
     end
+
+    it "supports IPv6-only servers without IPv4" do
+      expected_body = {
+        name: "test-server",
+        type: "VPS-2",
+        ipv4: false
+      }
+
+      expect(client).to receive(:post)
+        .with("/api/vps", body: expected_body)
+
+      vps.create(name: "test-server", type: "VPS-2", ipv4: false)
+    end
   end
 
   describe "#start" do
