@@ -36,6 +36,9 @@ module MythicBeasts
       @token = data["access_token"]
       # Expire token 30 seconds before actual expiry to be safe
       @token_expires_at = Time.now + (data["expires_in"].to_i - 30)
+    rescue Faraday::UnauthorizedError => e
+      response_body = e.response&.dig(:body)
+      raise AuthenticationError, "Failed to authenticate with Mythic Beasts API. Check your API key and secret. Response: #{response_body}"
     rescue Faraday::Error => e
       raise AuthenticationError, "Failed to authenticate: #{e.message}"
     end

@@ -37,16 +37,17 @@ module MythicBeasts
 
       JSON.parse(response.body) if response.body && !response.body.empty?
     rescue Faraday::UnauthorizedError, Faraday::ClientError => e
+      response_body = e.response&.dig(:body)
       if e.response&.dig(:status) == 401
-        raise AuthenticationError, "Invalid credentials"
+        raise AuthenticationError, "Invalid credentials - #{response_body}"
       elsif e.response&.dig(:status) == 404
-        raise NotFoundError, e.message
+        raise NotFoundError, "the server responded with status 404 for #{method.to_s.upcase} #{API_BASE_URL}#{path}"
       elsif e.response&.dig(:status) == 400
-        raise ValidationError, e.message
+        raise ValidationError, "#{e.message} - #{response_body}"
       elsif e.response&.dig(:status) == 429
         raise RateLimitError, e.message
       else
-        raise Error, e.message
+        raise Error, "#{e.message} - #{response_body}"
       end
     rescue Faraday::ServerError => e
       raise ServerError, e.message
