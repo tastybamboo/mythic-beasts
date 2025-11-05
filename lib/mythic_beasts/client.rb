@@ -36,7 +36,15 @@ module MythicBeasts
         req.body = body.to_json if body.any?
       end
 
-      JSON.parse(response.body) if response.body && !response.body.empty?
+      result = JSON.parse(response.body) if response.body && !response.body.empty?
+
+      # For 202 Accepted responses, include Location header for polling
+      if response.status == 202 && response.headers["location"]
+        result ||= {}
+        result["location"] = response.headers["location"]
+      end
+
+      result
     rescue Faraday::UnauthorizedError, Faraday::ClientError => e
       response_body = e.response&.dig(:body)
       if e.response&.dig(:status) == 401
