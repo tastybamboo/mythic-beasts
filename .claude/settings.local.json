@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(chmod:*)",
+      "Bash(bundle update:*)",
+      "Bash(bundle exec lefthook:*)",
+      "Bash(bundle exec standardrb:*)",
+      "Bash(bundle exec mdl:*)",
+      "Bash(bundle exec rspec:*)",
+      "Bash(bundle exec brakeman:*)",
+      "Bash(bundle exec bundler-audit:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(npx markdownlint-cli2:*)",
+      "Bash(git rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
