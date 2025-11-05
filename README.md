@@ -143,6 +143,7 @@ end
 ```
 
 Available error classes:
+
 - `MythicBeasts::Error` - Base error class
 - `MythicBeasts::AuthenticationError` - Invalid credentials
 - `MythicBeasts::NotFoundError` - Resource not found
@@ -167,11 +168,32 @@ ruby examples/list_zones_and_types.rb
 
 ## Development
 
-After checking out the repo:
+After checking out the repo, run the setup script to install dependencies and git hooks:
 
 ```bash
-bundle install
-bundle exec rspec
+bin/setup
+```
+
+This will:
+
+- Install all gem dependencies
+- Set up lefthook git hooks that run before pushing
+
+The pre-push hooks automatically run:
+
+- `bundle update` - Update dependencies
+- `bundle exec standardrb` - Ruby code linting
+- `bundle exec mdl .` - Markdown linting
+- `bundle exec rspec` - Test suite
+- `bundle exec bundler-audit check --update` - Security audit
+
+You can also run these checks manually:
+
+```bash
+bundle exec rspec                           # Run tests
+bundle exec standardrb                      # Run linter
+bundle exec mdl .                           # Run markdown linter
+bundle exec bundler-audit check --update    # Run security audit
 ```
 
 ## Contributing
@@ -181,6 +203,7 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/tastyb
 ## Author
 
 **James Inman** ([@jfi](https://github.com/jfi))
+
 - Email: james@otaina.co.uk
 - GitHub: https://github.com/tastybamboo
 

@@ -58,8 +58,8 @@ begin
 
   if result.is_a?(Hash)
     puts "\n📋 Server Details:"
-    puts "IP Address: #{result['ip'] || result[:ip] || 'Check control panel'}"
-    puts "Server ID: #{result['id'] || result[:id] || 'N/A'}"
+    puts "IP Address: #{result["ip"] || result[:ip] || "Check control panel"}"
+    puts "Server ID: #{result["id"] || result[:id] || "N/A"}"
   end
 
   puts "\n💡 Next steps:"

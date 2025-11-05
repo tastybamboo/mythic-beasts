@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Setting up mythic-beasts development environment..."
+
+# Install dependencies
+echo "Installing Ruby dependencies..."
+bundle install
+
+# Install lefthook hooks
+echo "Installing git hooks with lefthook..."
+bundle exec lefthook install
+
+echo ""
+echo "Setup complete! You can now:"
+echo "  - Run tests: bundle exec rspec"
+echo "  - Run linter: bundle exec standardrb"
+echo "  - Run markdown lint: bundle exec mdl ."
+echo "  - Run security audit: bundle exec bundler-audit check --update"
+echo ""
+echo "Git hooks are installed and will run automatically before pushing."

@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2025-01-27
 
-### Added
+### Features
 
 - Initial release by James Inman (@jfi)
 - OAuth2 authentication support with automatic token refresh

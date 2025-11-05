@@ -7,6 +7,7 @@
    - Verify email address
 
 2. **API Key**
+
    ```bash
    # Login to RubyGems (one-time setup)
    gem signin
@@ -114,6 +115,7 @@ Follow [Semantic Versioning](https://semver.org/):
 ## Author
 
 **James Inman** ([@jfi](https://github.com/jfi))
+
 - Email: james@otaina.co.uk
 - GitHub: https://github.com/tastybamboo
 

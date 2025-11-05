@@ -1,0 +1,13 @@
+pre-push:
+  parallel: true
+  commands:
+    bundle-update:
+      run: bundle update
+    standardrb:
+      run: bundle exec standardrb
+    markdownlint:
+      run: bundle exec mdl -s .mdl.rb .
+    tests:
+      run: bundle exec rspec
+    bundler-audit:
+      run: bundle exec bundler-audit check --update
