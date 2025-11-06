@@ -337,7 +337,7 @@ begin
   }
 
   create_params[:image] = selected_image if selected_image
-  create_params[:ipv4] = false unless selected_ipv4
+  create_params[:ipv4] = selected_ipv4
 
   # Provision with custom identifier or autogenerate
   result = if selected_identifier
@@ -385,9 +385,27 @@ begin
             break
           end
 
-          # If status says complete but no IPs yet, give it a moment
-          if status&.include?("complete") && attempt < max_attempts - 1
-            puts "  ⏳ Waiting for IP address assignment..."
+          # If status says complete, fetch server details from VPS API
+          if status&.include?("complete")
+            # Extract identifier from queue response or use the one we specified
+            queue_identifier = response["identifier"] || response[:identifier]
+            server_identifier = selected_identifier || queue_identifier
+
+            if server_identifier
+              begin
+                puts "  ⏱️  Fetching server details for #{server_identifier}..."
+                server_details = MythicBeasts.client.vps.server(server_identifier)
+                puts "  ✓ Server provisioned successfully!"
+                break
+              rescue MythicBeasts::NotFoundError
+                # Server not yet available in VPS API, keep polling
+                if attempt < max_attempts - 1
+                  puts "  ⏳ Waiting for server to appear in VPS API..."
+                end
+              end
+            elsif attempt < max_attempts - 1
+              puts "  ⏳ Waiting for server identifier..."
+            end
           end
         end
 
