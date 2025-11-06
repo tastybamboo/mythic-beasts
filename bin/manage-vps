@@ -392,9 +392,20 @@ begin
             begin
               MythicBeasts.client.proxy.create_simple(domain, host, ipv6_address)
               puts "\n✅ IPv4→IPv6 proxy configured successfully!"
-              puts "\n💡 Next steps:"
-              puts "  1. Ensure your server is listening on port 80/443"
-              puts "  2. Test access: curl -I http://#{hostname}"
+              puts "\n💡 IMPORTANT: Configure DNS to route traffic through the proxy"
+              puts "\nAdd these DNS records to #{domain}:"
+
+              if host.empty? || host == "@"
+                puts "  @ (root)  ANAME  proxy.mythic-beasts.com."
+              else
+                puts "  #{host}   CNAME  proxy.mythic-beasts.com."
+              end
+
+              puts "\n📋 Next steps:"
+              puts "  1. Add the DNS record(s) above to #{domain}"
+              puts "  2. Wait for DNS propagation (a few minutes)"
+              puts "  3. Ensure your server is listening on port 80/443 on IPv6"
+              puts "  4. Test access: curl -I http://#{hostname}"
             rescue MythicBeasts::Error => e
               puts "\n❌ Error: #{e.message}"
             end
