@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added in Unreleased
 
 - Interactive CLI tool `mythic-beasts-provision` with numbered menu navigation for VPS provisioning
+- IPv4 to IPv6 Proxy API client (`MythicBeasts.client.proxy`) for managing proxy endpoints
+  - List, create, replace, and delete proxy configurations
+  - Support for all proxy sites (sov, ams, hex) or "all"
+  - Convenience method `create_simple` for quick proxy setup
+  - Full CRUD operations on proxy endpoints by domain/hostname/address
 
 ### Changed in Unreleased
 

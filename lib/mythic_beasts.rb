@@ -7,6 +7,7 @@ require_relative "mythic_beasts/client"
 require_relative "mythic_beasts/auth"
 require_relative "mythic_beasts/dns"
 require_relative "mythic_beasts/vps"
+require_relative "mythic_beasts/proxy"
 require_relative "mythic_beasts/errors"
 
 module MythicBeasts

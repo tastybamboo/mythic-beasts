@@ -2,12 +2,13 @@ module MythicBeasts
   class Client
     API_BASE_URL = "https://api.mythic-beasts.com"
 
-    attr_reader :auth, :dns, :vps
+    attr_reader :auth, :dns, :vps, :proxy
 
     def initialize(api_key:, api_secret:)
       @auth = Auth.new(api_key: api_key, api_secret: api_secret)
       @dns = DNS.new(self)
       @vps = VPS.new(self)
+      @proxy = Proxy.new(self)
     end
 
     def get(path, params: {})
