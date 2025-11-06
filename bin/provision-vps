@@ -1,0 +1,502 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "mythic_beasts"
+require "json"
+
+# Force unbuffered output
+$stdout.sync = true
+$stderr.sync = true
+
+# Simple menu helper for better terminal compatibility
+def numbered_menu(title, choices, default: 1)
+  puts ""
+  puts title
+  puts "─" * 60
+  choices.each_with_index do |choice, index|
+    puts "  #{index + 1}. #{choice[:name]}"
+  end
+  puts ""
+
+  loop do
+    print "Enter choice (1-#{choices.length}) [#{default}]: "
+    input = gets.strip
+    input = default.to_s if input.empty?
+
+    choice_num = input.to_i
+    if choice_num >= 1 && choice_num <= choices.length
+      return choices[choice_num - 1][:value]
+    end
+
+    puts "Invalid choice. Please enter a number between 1 and #{choices.length}."
+  end
+end
+
+def yes_no(question, default: true)
+  default_text = default ? "Y/n" : "y/N"
+  loop do
+    print "#{question} (#{default_text}): "
+    input = gets.strip.downcase
+    return default if input.empty?
+    return true if input == "y" || input == "yes"
+    return false if input == "n" || input == "no"
+    puts "Please enter y or n."
+  end
+end
+
+def ask(question, required: true, validate: nil)
+  loop do
+    print "#{question}: "
+    input = gets.strip
+
+    if required && input.empty?
+      puts "This field is required."
+      next
+    end
+
+    if validate && !input.match?(validate)
+      puts "Invalid format. Only lowercase letters, numbers, and hyphens allowed."
+      next
+    end
+
+    return input
+  end
+end
+
+puts ""
+puts "═" * 60
+puts "Mythic Beasts VPS Interactive Provisioning"
+puts "═" * 60
+puts ""
+
+# Load credentials
+unless ENV["MYTHIC_BEASTS_API_KEY"] && ENV["MYTHIC_BEASTS_API_SECRET"]
+  puts "⚠️  API credentials not found in environment variables"
+  puts ""
+  puts "Please set MYTHIC_BEASTS_API_KEY and MYTHIC_BEASTS_API_SECRET"
+  puts "or load them from .env file using dotenv, or use 1Password:"
+  puts ""
+  puts "  op run --env-file=.env.1password -- mythic-beasts-provision"
+  puts ""
+  exit 1
+end
+
+# Get SSH public key
+ssh_key = nil
+if ENV["SSH_PUBLIC_KEY"] && !ENV["SSH_PUBLIC_KEY"].empty?
+  ssh_key = ENV["SSH_PUBLIC_KEY"].strip
+  puts "✓ Using SSH key from SSH_PUBLIC_KEY environment variable"
+else
+  ssh_key_path = File.expand_path("~/.ssh/id_rsa.pub")
+  unless File.exist?(ssh_key_path)
+    ssh_key_path = File.expand_path("~/.ssh/id_ed25519.pub")
+  end
+
+  if File.exist?(ssh_key_path)
+    ssh_key = File.read(ssh_key_path).strip
+    puts "✓ Found SSH key at #{ssh_key_path}"
+  else
+    puts "❌ No SSH public key found!"
+    puts ""
+    puts "Options:"
+    puts "1. Add SSH_PUBLIC_KEY to environment"
+    puts "2. Generate a local key: ssh-keygen -t ed25519"
+    exit 1
+  end
+end
+
+# Configure client
+MythicBeasts.configure do |config|
+  config.api_key = ENV["MYTHIC_BEASTS_API_KEY"]
+  config.api_secret = ENV["MYTHIC_BEASTS_API_SECRET"]
+end
+
+puts ""
+puts "🔍 Fetching available VPS options from Mythic Beasts API..."
+puts ""
+
+begin
+  # Fetch all options
+  products_data = MythicBeasts.client.vps.products
+  images_data = MythicBeasts.client.vps.images
+  zones_data = MythicBeasts.client.vps.zones
+  disk_sizes_data = MythicBeasts.client.vps.disk_sizes
+
+  # Parse products
+  products = products_data.is_a?(Hash) ? products_data.values : products_data
+  products = products.sort_by { |p| p["specs"]["ram"] }
+
+  # Parse images
+  images = images_data.is_a?(Hash) ? images_data.values : images_data
+  images = images.sort_by { |i| i["description"] }
+
+  # Parse zones
+  zones = zones_data.is_a?(Hash) ? zones_data : {}
+
+  # Parse disk sizes
+  ssd_sizes = disk_sizes_data["ssd"] || disk_sizes_data[:ssd] || []
+
+  # Interactive selection
+  product_choices = products.map do |p|
+    code = p["code"]
+    specs = p["specs"]
+    cores = specs["cores"]
+    ram_gb = specs["ram"] / 1024
+    bandwidth_mb = specs["bandwidth"]
+    # Display bandwidth in GB if >= 1024MB, otherwise MB
+    bandwidth_display = if bandwidth_mb >= 1024
+      "#{bandwidth_mb / 1024}GB/mo"
+    else
+      "#{bandwidth_mb}MB/mo"
+    end
+    {
+      name: "#{code.ljust(10)} - #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_display} bandwidth",
+      value: code
+    }
+  end
+  selected_product = numbered_menu("📦 SELECT VPS PRODUCT", product_choices)
+
+  zone_choices = zones.map do |code, info|
+    description = info["description"] || info[:description]
+    {
+      name: "#{code} - #{description}",
+      value: code
+    }
+  end
+  selected_zone = numbered_menu("🌍 SELECT ZONE (DATACENTER)", zone_choices)
+
+  image_choices = images.map do |img|
+    name = img["name"]
+    description = img["description"]
+    {
+      name: description,
+      value: name
+    }
+  end
+  image_choices << {name: "[No OS - manual install]", value: nil}
+  selected_image = numbered_menu("💿 SELECT OS IMAGE", image_choices)
+
+  # Disk type selection
+  disk_type_choices = []
+  hdd_sizes = disk_sizes_data["hdd"] || disk_sizes_data[:hdd] || []
+  disk_type_choices << {name: "SSD (faster)", value: "ssd"} if ssd_sizes.any?
+  disk_type_choices << {name: "HDD (cheaper)", value: "hdd"} if hdd_sizes.any?
+  selected_disk_type = numbered_menu("💾 SELECT DISK TYPE", disk_type_choices, default: 1)
+
+  # Disk size selection based on type
+  available_sizes = selected_disk_type == "ssd" ? ssd_sizes : hdd_sizes
+  common_sizes = [5120, 10240, 15360, 20480, 30720, 40960, 61440, 81920, 102400, 204800, 409600]
+  disk_choices = common_sizes.select { |size| available_sizes.include?(size) }.map do |size|
+    if size >= 1024
+      gb = size / 1024
+      {
+        name: "#{gb}GB #{selected_disk_type.upcase}",
+        value: size
+      }
+    else
+      {
+        name: "#{size}MB #{selected_disk_type.upcase}",
+        value: size
+      }
+    end
+  end
+  selected_disk_size = numbered_menu("💾 SELECT DISK SIZE", disk_choices)
+
+  puts ""
+  puts "🌐 NETWORK CONFIGURATION"
+  puts "(No = IPv6-only, cheaper but requires proxy for web)"
+  selected_ipv4 = yes_no("Include IPv4 address?", default: true)
+
+  puts ""
+  puts "🆔 SERVER IDENTIFIER"
+  use_custom_identifier = yes_no("Use custom identifier? (No = autogenerated)", default: false)
+
+  selected_identifier = nil
+  if use_custom_identifier
+    puts "Must be unique, lowercase letters and digits only (20 chars max)"
+    loop do
+      identifier_input = ask("Enter server identifier", required: true, validate: /\A[a-z0-9]{1,20}\z/)
+      selected_identifier = identifier_input
+      break
+    rescue => e
+      puts "❌ #{e.message}"
+    end
+  end
+
+  puts ""
+  puts "📝 SERVER NAME"
+  selected_name = ask("Enter friendly name", required: true, validate: /\A[a-z0-9-]+\z/)
+
+  puts ""
+  puts "🌍 HOSTNAME"
+  default_hostname = if selected_identifier
+    "#{selected_identifier}.vs.mythic-beasts.com"
+  else
+    "#{selected_name}.vs.mythic-beasts.com"
+  end
+  print "Enter hostname [#{default_hostname}]: "
+  hostname_input = gets.strip
+  selected_hostname = hostname_input.empty? ? default_hostname : hostname_input
+
+  # Check DNS zone access
+  puts ""
+  puts "🔍 Checking DNS zone access..."
+
+  has_dns_access = false
+  available_zones = []
+  dns_zone = nil
+  dns_host = nil
+
+  begin
+    zones_response = MythicBeasts.client.dns.zones
+    available_zones = if zones_response.is_a?(Array)
+      zones_response
+    elsif zones_response.is_a?(Hash)
+      zones_response["zones"] || zones_response[:zones] || []
+    else
+      []
+    end
+
+    # Find which zone the hostname belongs to by checking if hostname ends with zone
+    # Sort zones by length (longest first) to match most specific zone
+    matching_zone = available_zones.sort_by { |z| -z.length }.find do |zone|
+      selected_hostname.end_with?(zone) || selected_hostname.end_with?(".#{zone}")
+    end
+
+    if matching_zone
+      dns_zone = matching_zone
+      # Extract host part by removing the zone from the end
+      if selected_hostname == matching_zone
+        dns_host = "@"
+      else
+        dns_host = selected_hostname.sub(/\.?#{Regexp.escape(matching_zone)}$/, '')
+      end
+      has_dns_access = true
+    end
+  rescue MythicBeasts::Error => e
+    puts "⚠️  Could not check DNS zones: #{e.message}"
+  end
+
+  selected_setup_dns = false
+  selected_setup_reverse_dns = false
+
+  if has_dns_access
+    puts "✓ DNS zone '#{dns_zone}' is accessible"
+    puts ""
+    puts "📝 DNS CONFIGURATION"
+    selected_setup_dns = yes_no("Setup forward DNS (#{dns_host}.#{dns_zone} → IP)?", default: true)
+    if selected_ipv4
+      selected_setup_reverse_dns = yes_no("Setup reverse DNS (IP → #{selected_hostname})?", default: true)
+    end
+  else
+    puts "⚠️  DNS zone '#{dns_zone}' not found in available zones"
+    puts "   Available zones: #{available_zones.join(', ')}" if available_zones.any?
+    puts "   DNS records will NOT be configured automatically"
+    selected_setup_dns = false
+    selected_setup_reverse_dns = false
+  end
+
+  # Summary
+  puts ""
+  puts "═" * 60
+  puts "CONFIGURATION SUMMARY"
+  puts "═" * 60
+  puts ""
+  puts "Identifier:     #{selected_identifier || '[autogenerated]'}"
+  puts "Name:           #{selected_name}"
+  puts "Hostname:       #{selected_hostname}"
+  puts "Product:        #{selected_product}"
+  puts "Zone:           #{selected_zone}"
+  puts "Image:          #{selected_image || '[none - manual install]'}"
+  puts "Disk:           #{selected_disk_size / 1024}GB #{selected_disk_type.upcase}"
+  puts "IPv4:           #{selected_ipv4 ? 'Yes' : 'No (IPv6-only)'}"
+  puts "Forward DNS:    #{selected_setup_dns ? 'Yes' : 'No'}"
+  puts "Reverse DNS:    #{selected_setup_reverse_dns ? 'Yes' : 'No'}" if selected_ipv4
+  puts "SSH Key:        #{ssh_key[0..50]}..."
+  puts ""
+
+  unless yes_no("Proceed with provisioning?", default: false)
+    puts "❌ Provisioning cancelled."
+    exit 0
+  end
+
+  puts ""
+  puts "🚀 Starting provisioning..."
+  puts ""
+
+  # Build request
+  create_params = {
+    product: selected_product,
+    name: selected_name,
+    hostname: selected_hostname,
+    ssh_keys: ssh_key,
+    zone: selected_zone,
+    disk_size: selected_disk_size,  # Size in MB (API requirement)
+    disk_type: selected_disk_type
+  }
+
+  create_params[:image] = selected_image if selected_image
+  create_params[:ipv4] = false unless selected_ipv4
+
+  # Provision with custom identifier or autogenerate
+  result = if selected_identifier
+    MythicBeasts.client.vps.create_with_identifier(selected_identifier, **create_params)
+  else
+    MythicBeasts.client.vps.create(**create_params)
+  end
+
+  if result && result["location"]
+    puts "✓ Provisioning request submitted!"
+    puts "  Status URL: #{result["location"]}"
+    puts ""
+    puts "⏳ Polling for completion (max 5 minutes)..."
+
+    # Poll for completion
+    max_attempts = 60
+    attempt = 0
+    server_details = nil
+
+    while attempt < max_attempts
+      sleep 5
+      attempt += 1
+
+      begin
+        location_path = result["location"].sub("https://api.mythic-beasts.com", "")
+        response = MythicBeasts.client.get(location_path)
+
+        # Check if response has the server details with IP addresses
+        if response.is_a?(Hash)
+          status = response["status"] || response[:status]
+          ipv4 = response["ipv4"] || response[:ipv4]
+          ipv6 = response["ipv6"] || response[:ipv6]
+
+          # Display current status
+          if status
+            print "\r  ⏱️  Status: #{status}... #{attempt * 5}s"
+          else
+            print "\r  ⏱️  Checking status... #{attempt * 5}s"
+          end
+
+          # Server is ready when it has IP addresses assigned
+          if (ipv4 && !ipv4.empty?) || (ipv6 && !ipv6.empty?)
+            server_details = response
+            break
+          end
+        end
+
+        # Continue polling if no IPs yet
+        next
+      rescue MythicBeasts::NotFoundError
+        # Queue still processing
+        print "\r  ⏱️  Initializing... #{attempt * 5}s"
+        next
+      rescue => e
+        if e.message.include?("303")
+          # Got redirect - server might be ready, try to fetch it
+          print "\r  ⏱️  Finalizing... #{attempt * 5}s"
+          # Continue polling to get actual details
+          next
+        else
+          raise
+        end
+      end
+    end
+
+    puts ""
+    puts ""
+    if server_details
+      puts "✅ SERVER PROVISIONED SUCCESSFULLY!"
+      puts "─" * 64
+
+      # Extract identifier from response if autogenerated
+      actual_identifier = selected_identifier || server_details["identifier"] || server_details[:identifier]
+
+      ipv4_addr = server_details["ipv4"] || server_details[:ipv4] || []
+      ipv6_addr = server_details["ipv6"] || server_details[:ipv6] || []
+
+      if ipv4_addr.any?
+        puts "  IPv4: #{ipv4_addr.first}"
+      end
+      if ipv6_addr.any?
+        puts "  IPv6: #{ipv6_addr.first}"
+      end
+
+      server_id = server_details["id"] || server_details[:id]
+      puts "  Server ID: #{server_id}" if server_id
+      puts "  Identifier: #{actual_identifier}" if actual_identifier
+
+      # Setup DNS if requested
+      if selected_setup_dns && (ipv4_addr.any? || ipv6_addr.any?)
+        puts ""
+        puts "🌐 Setting up DNS records..."
+
+        begin
+          # Create forward DNS records
+          dns_records = []
+          if ipv4_addr.any?
+            dns_records << {host: dns_host, ttl: 300, type: "A", data: ipv4_addr.first}
+          end
+          if ipv6_addr.any?
+            dns_records << {host: dns_host, ttl: 300, type: "AAAA", data: ipv6_addr.first}
+          end
+
+          if dns_records.any?
+            MythicBeasts.client.dns.create_records(dns_zone, dns_records)
+            puts "  ✓ Forward DNS configured: #{dns_host}.#{dns_zone}"
+          end
+        rescue MythicBeasts::Error => e
+          puts "  ⚠️  Failed to setup forward DNS: #{e.message}"
+        end
+      end
+
+      if selected_setup_reverse_dns && ipv4_addr.any? && actual_identifier
+        puts "🔄 Setting up reverse DNS..."
+        begin
+          # Reverse DNS is typically set via the VPS API, not DNS API
+          # We'll use the update method to set the hostname
+          MythicBeasts.client.vps.update(actual_identifier, hostname: selected_hostname)
+          puts "  ✓ Reverse DNS configured: #{ipv4_addr.first} → #{selected_hostname}"
+        rescue MythicBeasts::Error => e
+          puts "  ⚠️  Failed to setup reverse DNS: #{e.message}"
+        end
+      end
+
+      # Save to file
+      output_file = "#{actual_identifier || selected_name}-provision.json"
+      server_details["identifier"] = actual_identifier if actual_identifier
+      File.write(output_file, JSON.pretty_generate(server_details))
+      puts ""
+      puts "💾 Server details saved to: #{output_file}"
+    else
+      puts "⚠️  Provisioning timed out after #{max_attempts * 5} seconds"
+      puts "   Check Mythic Beasts control panel for status"
+    end
+  else
+    puts "✓ Provisioning completed!"
+    puts ""
+    puts JSON.pretty_generate(result)
+
+    actual_identifier = selected_identifier || (result && (result["identifier"] || result[:identifier]))
+    output_file = "#{actual_identifier || selected_name}-provision.json"
+    result["identifier"] = actual_identifier if result && actual_identifier
+    File.write(output_file, JSON.pretty_generate(result))
+    puts ""
+    puts "💾 Server details saved to: #{output_file}"
+  end
+
+rescue MythicBeasts::ConflictError => e
+  puts ""
+  puts "❌ Identifier '#{selected_identifier}' is already in use."
+  puts "   Please try again with a different identifier."
+  exit 1
+rescue MythicBeasts::Error => e
+  puts ""
+  puts "❌ Error: #{e.message}"
+  exit 1
+rescue Interrupt
+  puts ""
+  puts ""
+  puts "❌ Cancelled by user"
+  exit 130
+end

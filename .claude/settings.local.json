@@ -14,7 +14,9 @@
       "Bash(git commit:*)",
       "Bash(git push)",
       "Bash(npx markdownlint-cli2:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(ruby:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

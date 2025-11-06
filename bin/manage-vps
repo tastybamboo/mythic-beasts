@@ -1,0 +1,314 @@
+#!/usr/bin/env ruby
+# Force unbuffered output
+$stdout.sync = true
+$stderr.sync = true
+
+require "bundler/setup"
+require "mythic_beasts"
+require "json"
+
+# Load environment variables if needed
+unless ENV["MYTHIC_BEASTS_API_KEY"] && ENV["MYTHIC_BEASTS_API_SECRET"]
+  require "dotenv/load" rescue nil
+  if ENV["MYTHIC_BEASTS_API_KEY"] && ENV["MYTHIC_BEASTS_API_SECRET"]
+    puts "✓ Loaded credentials from .env file"
+  else
+    puts "❌ Error: MYTHIC_BEASTS_API_KEY and MYTHIC_BEASTS_API_SECRET must be set"
+    puts ""
+    puts "Set them in your environment or create a .env file with:"
+    puts "  MYTHIC_BEASTS_API_KEY=your_key"
+    puts "  MYTHIC_BEASTS_API_SECRET=your_secret"
+    exit 1
+  end
+else
+  puts "✓ Using environment credentials"
+end
+
+# Configure client
+MythicBeasts.configure do |config|
+  config.api_key = ENV["MYTHIC_BEASTS_API_KEY"]
+  config.api_secret = ENV["MYTHIC_BEASTS_API_SECRET"]
+end
+
+def ask_number(prompt, max)
+  loop do
+    print "#{prompt} (1-#{max}): "
+    input = gets.chomp
+    num = input.to_i
+    return num if num >= 1 && num <= max
+    puts "❌ Please enter a number between 1 and #{max}"
+  end
+end
+
+puts "\n🖥️  Mythic Beasts VPS Manager"
+puts "=" * 60
+
+# List all VPS servers
+puts "\n📋 Fetching your VPS servers..."
+begin
+  servers_response = MythicBeasts.client.vps.servers
+  servers = servers_response.is_a?(Hash) ? servers_response.values : servers_response
+
+  if servers.empty?
+    puts "No VPS servers found"
+    exit 0
+  end
+
+  puts "\n" + "=" * 60
+  puts "YOUR VPS SERVERS"
+  puts "=" * 60
+
+  servers.each_with_index do |server, index|
+    identifier = server["identifier"] || server[:identifier]
+    name = server["name"] || server[:name] || "(unnamed)"
+
+    puts "\n#{index + 1}. #{name}"
+    puts "   Identifier: #{identifier}"
+  end
+
+  puts "\n" + "=" * 60
+
+  # Select a server
+  selected_index = ask_number("\nSelect a server", servers.length) - 1
+  selected_server = servers[selected_index]
+  identifier = selected_server["identifier"] || selected_server[:identifier]
+  name = selected_server["name"] || selected_server[:name] || "(unnamed)"
+
+  puts "\n✓ Selected: #{name} (#{identifier})"
+
+  # Fetch detailed server info
+  puts "\n🔍 Fetching server details..."
+  server_details = MythicBeasts.client.vps.server(identifier)
+
+  puts "\n" + "=" * 60
+  puts "SERVER DETAILS"
+  puts "=" * 60
+  puts "Name: #{server_details["name"] || server_details[:name]}"
+  puts "Identifier: #{identifier}"
+  puts "Status: #{server_details["status"] || server_details[:status]}"
+
+  zone_info = server_details["zone"] || server_details[:zone]
+  if zone_info.is_a?(Hash)
+    zone_name = zone_info["name"] || zone_info[:name]
+    zone_code = zone_info["code"] || zone_info[:code]
+    puts "Zone: #{zone_name} (#{zone_code})"
+  else
+    puts "Zone: #{zone_info}"
+  end
+
+  ipv4 = server_details["ipv4"] || server_details[:ipv4]
+  ipv6 = server_details["ipv6"] || server_details[:ipv6]
+
+  if ipv4.is_a?(Array) && ipv4.any?
+    puts "IPv4: #{ipv4.join(", ")}"
+  elsif ipv4 && !ipv4.is_a?(Array)
+    puts "IPv4: #{ipv4}"
+  end
+
+  if ipv6.is_a?(Array) && ipv6.any?
+    puts "IPv6: #{ipv6.join(", ")}"
+  elsif ipv6 && !ipv6.is_a?(Array)
+    puts "IPv6: #{ipv6}"
+  end
+
+  # Show management options
+  puts "\n" + "=" * 60
+  puts "MANAGEMENT OPTIONS"
+  puts "=" * 60
+  puts "1. Reboot server"
+  puts "2. Mount ISO image"
+  puts "3. Update friendly name"
+  puts "4. Update product (specifications)"
+  puts "5. Exit"
+  puts ""
+  puts "999. 🚨 UNPROVISION SERVER (PERMANENT DELETE)"
+
+  print "\nSelect an option: "
+  option = gets.chomp.to_i
+
+  case option
+  when 1
+    # Reboot server
+    puts "\n⚠️  Are you sure you want to reboot #{name}? (yes/no)"
+    confirmation = gets.chomp.downcase
+
+    if confirmation == "yes" || confirmation == "y"
+      puts "\n🔄 Rebooting server..."
+      MythicBeasts.client.vps.reboot(identifier)
+      puts "✅ Reboot command sent successfully!"
+    else
+      puts "❌ Reboot cancelled"
+    end
+
+  when 2
+    # Mount ISO image
+    puts "\n💿 Fetching available ISO images..."
+    iso_images = MythicBeasts.client.vps.iso_images(identifier)
+
+    if iso_images.empty?
+      puts "❌ No ISO images available"
+      exit 1
+    end
+
+    # Sort and display ISO images
+    sorted_images = iso_images.sort_by { |name, _| name }
+
+    puts "\n" + "=" * 60
+    puts "AVAILABLE ISO IMAGES"
+    puts "=" * 60
+
+    sorted_images.each_with_index do |(name, details), index|
+      description = details["description"] || details[:description]
+      puts "\n#{index + 1}. #{name}"
+      puts "   #{description}" if description && description != name
+    end
+
+    puts "\n" + "=" * 60
+
+    # Select an ISO image
+    iso_index = ask_number("\nSelect an ISO image", sorted_images.length) - 1
+    iso_name = sorted_images[iso_index][0]
+
+    puts "\n⚠️  This will mount #{iso_name}, set boot device to CDROM, and reboot the server."
+    puts "Are you sure you want to continue? (yes/no)"
+    confirmation = gets.chomp.downcase
+
+    if confirmation == "yes" || confirmation == "y"
+      puts "\n💿 Mounting ISO image and configuring boot device..."
+      MythicBeasts.client.vps.update(identifier, iso_image: iso_name, boot_device: "cdrom")
+      puts "✅ ISO image mounted and boot device set to CDROM"
+
+      puts "\n🔄 Rebooting server to boot from ISO..."
+      MythicBeasts.client.vps.reboot(identifier)
+      puts "✅ Server reboot initiated!"
+      puts "\n💡 The server will now boot from the ISO image"
+    else
+      puts "❌ Operation cancelled"
+    end
+
+  when 3
+    # Update friendly name
+    puts "\n📝 UPDATE FRIENDLY NAME"
+    puts "Current name: #{name}"
+    print "Enter new name (lowercase letters, numbers, hyphens): "
+    new_name = gets.strip
+
+    if new_name.empty? || !new_name.match?(/\A[a-z0-9-]+\z/)
+      puts "❌ Invalid name format"
+    else
+      puts "\n⚠️  Are you sure you want to change the name to '#{new_name}'? (yes/no)"
+      confirmation = gets.chomp.downcase
+
+      if confirmation == "yes" || confirmation == "y"
+        puts "\n✏️  Updating server name..."
+        MythicBeasts.client.vps.update(identifier, name: new_name)
+        puts "✅ Server name updated successfully!"
+      else
+        puts "❌ Update cancelled"
+      end
+    end
+
+  when 4
+    # Update product (specifications)
+    puts "\n📦 Fetching available products..."
+    products_data = MythicBeasts.client.vps.products
+    products = products_data.is_a?(Hash) ? products_data.values : products_data
+    products = products.sort_by { |p| p["specs"]["ram"] }
+
+    current_product = server_details["product"] || server_details[:product]
+
+    puts "\n" + "=" * 60
+    puts "AVAILABLE PRODUCTS"
+    puts "=" * 60
+    puts "Current product: #{current_product}" if current_product
+    puts ""
+
+    products.each_with_index do |product, index|
+      code = product["code"]
+      specs = product["specs"]
+      cores = specs["cores"]
+      ram_gb = specs["ram"] / 1024
+      bandwidth_mb = specs["bandwidth"]
+      bandwidth_display = if bandwidth_mb >= 1024
+        "#{bandwidth_mb / 1024}GB/mo"
+      else
+        "#{bandwidth_mb}MB/mo"
+      end
+
+      marker = code == current_product ? " (current)" : ""
+      puts "#{index + 1}. #{code.ljust(10)} - #{cores} cores, #{ram_gb}GB RAM, #{bandwidth_display}#{marker}"
+    end
+
+    puts "\n" + "=" * 60
+
+    product_index = ask_number("\nSelect new product", products.length) - 1
+    selected_product = products[product_index]["code"]
+
+    puts "\n⚠️  This will update the server specifications to #{selected_product}."
+    puts "The server may need to be rebooted for changes to take effect."
+    puts "Are you sure you want to continue? (yes/no)"
+    confirmation = gets.chomp.downcase
+
+    if confirmation == "yes" || confirmation == "y"
+      puts "\n🔧 Updating server product..."
+      MythicBeasts.client.vps.update(identifier, product: selected_product)
+      puts "✅ Server product updated successfully!"
+      puts "💡 You may need to reboot the server for changes to take effect"
+    else
+      puts "❌ Update cancelled"
+    end
+
+  when 5
+    puts "\n👋 Goodbye!"
+    exit 0
+
+  when 999
+    # Unprovision server (DANGER!)
+    puts ""
+    puts "🚨" * 30
+    puts "⚠️  DANGER: PERMANENT SERVER DELETION"
+    puts "🚨" * 30
+    puts ""
+    puts "This will PERMANENTLY DELETE the server: #{name} (#{identifier})"
+    puts "  - All data will be LOST"
+    puts "  - This action CANNOT be undone"
+    puts "  - The server will be COMPLETELY REMOVED"
+    puts ""
+    puts "🚨" * 30
+    puts ""
+
+    print "Type the server identifier '#{identifier}' to confirm: "
+    first_confirmation = gets.strip
+
+    if first_confirmation != identifier
+      puts "❌ Identifier does not match. Deletion cancelled."
+    else
+      puts ""
+      puts "⚠️  FINAL CONFIRMATION"
+      print "Type 'DELETE' in uppercase to permanently delete this server: "
+      second_confirmation = gets.strip
+
+      if second_confirmation != "DELETE"
+        puts "❌ Confirmation failed. Deletion cancelled."
+      else
+        puts ""
+        puts "🗑️  Unprovisioning server..."
+        MythicBeasts.client.vps.unprovision(identifier)
+        puts ""
+        puts "✅ Server has been permanently deleted."
+        puts ""
+        exit 0
+      end
+    end
+
+  else
+    puts "❌ Invalid option"
+    exit 1
+  end
+
+rescue MythicBeasts::Error => e
+  puts "\n❌ Error: #{e.message}"
+  exit 1
+end
+
+puts ""

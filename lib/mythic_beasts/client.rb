@@ -22,6 +22,10 @@ module MythicBeasts
       request(:put, path, body: body, params: params)
     end
 
+    def patch(path, body: {}, params: {})
+      request(:patch, path, body: body, params: params)
+    end
+
     def delete(path, params: {})
       request(:delete, path, params: params)
     end
@@ -53,6 +57,8 @@ module MythicBeasts
         raise NotFoundError, "the server responded with status 404 for #{method.to_s.upcase} #{API_BASE_URL}#{path}"
       elsif e.response&.dig(:status) == 400
         raise ValidationError, "#{e.message} - #{response_body}"
+      elsif e.response&.dig(:status) == 409
+        raise ConflictError, "#{e.message} - #{response_body}"
       elsif e.response&.dig(:status) == 429
         raise RateLimitError, e.message
       else
