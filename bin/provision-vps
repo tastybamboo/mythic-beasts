@@ -371,17 +371,23 @@ begin
           ipv4 = response["ipv4"] || response[:ipv4]
           ipv6 = response["ipv6"] || response[:ipv6]
 
-          # Display current status
+          # Display current status (use newline for clean output)
           if status
-            print "\r  ⏱️  Status: #{status}... #{attempt * 5}s"
+            puts "  ⏱️  #{status} (#{attempt * 5}s)"
           else
-            print "\r  ⏱️  Checking status... #{attempt * 5}s"
+            puts "  ⏱️  Checking status... (#{attempt * 5}s)"
           end
 
           # Server is ready when it has IP addresses assigned
           if (ipv4 && !ipv4.empty?) || (ipv6 && !ipv6.empty?)
             server_details = response
+            puts "  ✓ Server provisioned with IP addresses!"
             break
+          end
+
+          # If status says complete but no IPs yet, give it a moment
+          if status&.include?("complete") && attempt < max_attempts - 1
+            puts "  ⏳ Waiting for IP address assignment..."
           end
         end
 
@@ -389,12 +395,12 @@ begin
         next
       rescue MythicBeasts::NotFoundError
         # Queue still processing
-        print "\r  ⏱️  Initializing... #{attempt * 5}s"
+        puts "  ⏱️  Initializing... (#{attempt * 5}s)"
         next
       rescue => e
         if e.message.include?("303")
           # Got redirect - server might be ready, try to fetch it
-          print "\r  ⏱️  Finalizing... #{attempt * 5}s"
+          puts "  ⏱️  Finalizing... (#{attempt * 5}s)"
           # Continue polling to get actual details
           next
         else
