@@ -119,7 +119,10 @@ begin
   puts "2. Mount ISO image"
   puts "3. Update friendly name"
   puts "4. Update product (specifications)"
-  puts "5. Exit"
+  puts "5. Setup forward DNS (A/AAAA records)"
+  puts "6. Setup reverse DNS (PTR records)"
+  puts "7. Setup IPv4→IPv6 proxy"
+  puts "8. Exit"
   puts ""
   puts "999. 🚨 UNPROVISION SERVER (PERMANENT DELETE)"
 
@@ -259,6 +262,152 @@ begin
     end
 
   when 5
+    # Setup forward DNS
+    puts "\n🌐 SETUP FORWARD DNS"
+    puts "Current server IPs:"
+    if ipv4.is_a?(Array) && ipv4.any?
+      puts "  IPv4: #{ipv4.join(", ")}"
+    end
+    if ipv6.is_a?(Array) && ipv6.any?
+      puts "  IPv6: #{ipv6.join(", ")}"
+    end
+
+    print "\nEnter hostname (e.g., web1.uk.neurobetter.net): "
+    hostname = gets.strip
+
+    if hostname.empty?
+      puts "❌ Hostname cannot be empty"
+    else
+      # Extract zone and host from hostname
+      parts = hostname.split(".")
+      if parts.length < 2
+        puts "❌ Invalid hostname format"
+      else
+        # Find the zone (last 2 parts typically)
+        zone = parts[-2..-1].join(".")
+        host = parts[0..-3].join(".")
+
+        puts "\nWill create DNS records:"
+        puts "  Zone: #{zone}"
+        puts "  Host: #{host}"
+
+        records_to_create = []
+        if ipv4.is_a?(Array) && ipv4.any?
+          puts "  A record: #{hostname} → #{ipv4.first}"
+          records_to_create << {type: "A", ip: ipv4.first}
+        end
+        if ipv6.is_a?(Array) && ipv6.any?
+          puts "  AAAA record: #{hostname} → #{ipv6.first}"
+          records_to_create << {type: "AAAA", ip: ipv6.first}
+        end
+
+        print "\nProceed? (yes/no): "
+        confirmation = gets.chomp.downcase
+
+        if confirmation == "yes" || confirmation == "y"
+          begin
+            records_to_create.each do |record|
+              if record[:type] == "A"
+                MythicBeasts.client.dns.create_a_record(zone, host, record[:ip], ttl: 300)
+                puts "  ✓ A record created"
+              elsif record[:type] == "AAAA"
+                MythicBeasts.client.dns.create_aaaa_record(zone, host, record[:ip], ttl: 300)
+                puts "  ✓ AAAA record created"
+              end
+            end
+            puts "\n✅ DNS records created successfully!"
+          rescue MythicBeasts::Error => e
+            puts "\n❌ Error: #{e.message}"
+          end
+        else
+          puts "❌ Cancelled"
+        end
+      end
+    end
+
+  when 6
+    # Setup reverse DNS
+    puts "\n🔄 SETUP REVERSE DNS"
+
+    if ipv4.is_a?(Array) && ipv4.any?
+      puts "IPv4 address: #{ipv4.first}"
+      print "Enter hostname for reverse DNS: "
+      hostname = gets.strip
+
+      if hostname.empty?
+        puts "❌ Hostname cannot be empty"
+      else
+        print "\nSet reverse DNS #{ipv4.first} → #{hostname}? (yes/no): "
+        confirmation = gets.chomp.downcase
+
+        if confirmation == "yes" || confirmation == "y"
+          begin
+            # Mythic Beasts typically uses update on VPS endpoint for reverse DNS
+            MythicBeasts.client.vps.update(identifier, reverse_dns: hostname)
+            puts "✅ Reverse DNS configured successfully!"
+          rescue MythicBeasts::Error => e
+            puts "\n❌ Error: #{e.message}"
+            puts "Note: Reverse DNS may need to be configured via Mythic Beasts control panel"
+          end
+        else
+          puts "❌ Cancelled"
+        end
+      end
+    else
+      puts "⚠️  No IPv4 address found. Reverse DNS is typically only available for IPv4."
+    end
+
+  when 7
+    # Setup IPv4→IPv6 proxy
+    puts "\n🔧 SETUP IPv4→IPv6 PROXY"
+
+    if ipv6.is_a?(Array) && ipv6.any?
+      ipv6_address = ipv6.first
+      puts "Server IPv6: #{ipv6_address}"
+
+      print "\nEnter hostname for proxy (e.g., web1.uk.neurobetter.net): "
+      hostname = gets.strip
+
+      if hostname.empty?
+        puts "❌ Hostname cannot be empty"
+      else
+        # Extract domain and hostname parts
+        parts = hostname.split(".")
+        if parts.length < 2
+          puts "❌ Invalid hostname format"
+        else
+          domain = parts[-2..-1].join(".")
+          host = parts[0..-3].join(".")
+
+          puts "\nWill configure proxy:"
+          puts "  Domain: #{domain}"
+          puts "  Hostname: #{host}"
+          puts "  Target IPv6: #{ipv6_address}"
+          puts "  Proxy will handle: HTTP (80), HTTPS (443)"
+
+          print "\nProceed? (yes/no): "
+          confirmation = gets.chomp.downcase
+
+          if confirmation == "yes" || confirmation == "y"
+            begin
+              MythicBeasts.client.proxy.create_simple(domain, host, ipv6_address)
+              puts "\n✅ IPv4→IPv6 proxy configured successfully!"
+              puts "\n💡 Next steps:"
+              puts "  1. Ensure your server is listening on port 80/443"
+              puts "  2. Test access: curl -I http://#{hostname}"
+            rescue MythicBeasts::Error => e
+              puts "\n❌ Error: #{e.message}"
+            end
+          else
+            puts "❌ Cancelled"
+          end
+        end
+      end
+    else
+      puts "⚠️  No IPv6 address found. Proxy requires an IPv6 address."
+    end
+
+  when 8
     puts "\n👋 Goodbye!"
     exit 0
 
