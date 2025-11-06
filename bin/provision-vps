@@ -472,7 +472,7 @@ begin
             # Verify DNS records by fetching from the zone
             begin
               puts "  🔍 Verifying DNS records..."
-              zone_records = MythicBeasts.client.dns.get_records(dns_zone)
+              zone_records = MythicBeasts.client.dns.records(dns_zone)
 
               # Find records matching our hostname
               verified_records = zone_records.select do |record|
