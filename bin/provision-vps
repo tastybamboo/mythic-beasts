@@ -468,6 +468,34 @@ begin
           if dns_records.any?
             MythicBeasts.client.dns.create_records(dns_zone, dns_records)
             puts "  ✓ Forward DNS configured: #{dns_host}.#{dns_zone}"
+
+            # Verify DNS records by fetching from the zone
+            begin
+              puts "  🔍 Verifying DNS records..."
+              zone_records = MythicBeasts.client.dns.get_records(dns_zone)
+
+              # Find records matching our hostname
+              verified_records = zone_records.select do |record|
+                record_host = record["host"] || record[:host]
+                record_host == dns_host
+              end
+
+              if verified_records.any?
+                puts "  ✓ Verified #{verified_records.length} DNS record(s):"
+                verified_records.each do |record|
+                  record_type = record["type"] || record[:type]
+                  record_data = record["data"] || record[:data]
+                  puts "    #{dns_host}.#{dns_zone} #{record_type} #{record_data}"
+                end
+
+                # Store verified records in server details
+                server_details["dns_records"] = verified_records
+              else
+                puts "  ⚠️  Could not verify DNS records (may take a moment to propagate)"
+              end
+            rescue MythicBeasts::Error => e
+              puts "  ⚠️  Could not verify DNS records: #{e.message}"
+            end
           end
         rescue MythicBeasts::Error => e
           puts "  ⚠️  Failed to setup forward DNS: #{e.message}"
