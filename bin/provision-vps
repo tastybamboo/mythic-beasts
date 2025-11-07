@@ -474,8 +474,11 @@ begin
               puts "  🔍 Verifying DNS records..."
               zone_records = MythicBeasts.client.dns.records(dns_zone)
 
+              # Ensure we have an array of records
+              records_array = zone_records.is_a?(Array) ? zone_records : []
+
               # Find records matching our hostname
-              verified_records = zone_records.select do |record|
+              verified_records = records_array.select do |record|
                 record_host = record["host"] || record[:host]
                 record_host == dns_host
               end
