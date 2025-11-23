@@ -35,3 +35,9 @@ Gemfile.lock
 
 # Used by RuboCop. Remote config files pulled in from inherit_from directive.
 .rubocop-https?--*
+
+# Server provisioning logs
+*-provision.json
+
+# Local Claude settings
+.claude/settings.local.json
