@@ -456,6 +456,35 @@ begin
         puts "🌐 Setting up DNS records..."
 
         begin
+          # Check for existing records first
+          existing_records = []
+          begin
+            zone_records = MythicBeasts.client.dns.records(dns_zone)
+            records_array = zone_records.is_a?(Array) ? zone_records : []
+            existing_records = records_array.select do |record|
+              record_host = record["host"] || record[:host]
+              record_host == dns_host
+            end
+          rescue MythicBeasts::Error => e
+            # Ignore errors checking existing records
+          end
+
+          # Delete existing records if any (with warning)
+          if existing_records.any?
+            puts "  ⚠️  Found #{existing_records.length} existing DNS record(s) for #{dns_host}.#{dns_zone}"
+            puts "  🗑️  Deleting existing records to replace with new IPs..."
+            existing_records.each do |record|
+              begin
+                record_type = record["type"] || record[:type]
+                record_data = record["data"] || record[:data]
+                MythicBeasts.client.dns.delete_record(dns_zone, dns_host, record_type, record_data)
+                puts "    ✓ Deleted #{record_type} record: #{record_data}"
+              rescue MythicBeasts::Error => e
+                puts "    ⚠️  Could not delete #{record_type} record: #{e.message}"
+              end
+            end
+          end
+
           # Create forward DNS records
           dns_records = []
           if ipv4_addr.any?
