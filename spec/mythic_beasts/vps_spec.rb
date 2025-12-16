@@ -150,7 +150,7 @@ RSpec.describe MythicBeasts::VPS do
 
   describe "#update" do
     it "updates a VPS with ISO image" do
-      expected_body = { iso_image: "ubuntu-20.04-live-server.iso" }
+      expected_body = {iso_image: "ubuntu-20.04-live-server.iso"}
       expect(client).to receive(:patch).with("/vps/servers/my-server-id", body: expected_body)
       vps.update("my-server-id", iso_image: "ubuntu-20.04-live-server.iso")
     end
