@@ -7,22 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added in Unreleased
+## [1.0.0] - 2026-03-12
+
+### Added in 1.0.0
+
+- Email authentication verification (`verify_email_auth`, `verify_spf`, `verify_dmarc`, `verify_dkim`)
+  - Validates SPF records: syntax, lookup count (RFC 7208 limit of 10), multiple record detection
+  - Validates DMARC records: version tag, policy tag, aggregate report configuration
+  - Validates DKIM records: version tag, public key presence and base64 encoding
+  - Returns structured `Result` and `CheckResult` objects for programmatic use
+- New example scripts:
+  - `examples/list_dns.rb` - List all DNS records for a zone
+  - `examples/sync_dns.rb` - Generic DNS sync from YAML with dry run/apply
+  - `examples/sync_from_octodns.rb` - OctoDNS zone file sync with conflict detection
+  - `examples/verify_email_auth.rb` - CLI for email authentication verification
+- README documentation for email authentication verification and DNS examples
+
+## [0.2.0] - 2025-11-23
+
+### Added in 0.2.0
 
 - Interactive CLI tool `mythic-beasts-provision` with numbered menu navigation for VPS provisioning
+- Interactive VPS management tool `mythic-beasts-manage-vps` with DNS and proxy configuration
 - IPv4 to IPv6 Proxy API client (`MythicBeasts.client.proxy`) for managing proxy endpoints
   - List, create, replace, and delete proxy configurations
   - Support for all proxy sites (sov, ams, hex) or "all"
   - Convenience method `create_simple` for quick proxy setup
   - Full CRUD operations on proxy endpoints by domain/hostname/address
+- DNS record verification after proxy configuration
+- DNS management integration in `manage-vps` tool
+- Comprehensive test coverage improvements:
+  - Added tests for VPS newer API endpoints: `servers()`, `server()`, `reboot()`, `update()`, `unprovision()`, `iso_images()`, `create_with_identifier()`
+  - Added test for Client PATCH method
+  - Added test for Proxy client initialization
+  - Test suite now contains 73 examples with 100% pass rate
 
-### Changed in Unreleased
+### Changed in 0.2.0
 
 - Replaced tty-prompt with simple numbered menus for better terminal compatibility (especially Ghostty)
+- Smart bandwidth display: shows GB for >= 1024MB, MB otherwise
 
-### Fixed in Unreleased
+### Fixed in 0.2.0
 
 - Zones endpoint now uses correct `/beta/vps/zones` path
+- DNS verification now handles non-array responses correctly
+- DNS records method name corrected in provision-vps tool
+- VPS provisioning polling now waits for actual completion
+- Status polling output now uses newlines properly
+- IPv4 allocation during VPS provisioning
+- Bandwidth display showing MB correctly instead of 0GB
 
 ## [0.1.3] - 2025-11-05
 

@@ -84,6 +84,34 @@ MythicBeasts.client.dns.delete_records(
 MythicBeasts.client.dns.dynamic_update('home.example.com')
 ```
 
+### Email Authentication Verification
+
+Verify SPF, DKIM, and DMARC records are correctly configured for a domain:
+
+```ruby
+dns = MythicBeasts.client.dns
+
+# Verify all email auth records at once
+result = dns.verify_email_auth('example.com', dkim_selectors: ['google', 'mailchimp'])
+
+result.valid?    # => true if no errors across all checks
+result.errors    # => ["No DKIM record found for selector 'mailchimp'"]
+result.warnings  # => ["DMARC record missing 'rua' tag (no aggregate reports)"]
+
+# Access individual check results
+result.spf.record                # => "v=spf1 include:_spf.google.com ~all"
+result.spf.details[:lookup_count] # => 1
+result.dmarc.details[:policy]    # => "reject"
+result.dkim['google'].valid?     # => true
+
+# Or verify individual record types
+spf = dns.verify_spf('example.com')
+dmarc = dns.verify_dmarc('example.com')
+dkim = dns.verify_dkim('example.com', 'google')
+```
+
+See `examples/verify_email_auth.rb` for a complete CLI script.
+
 ### VPS Management
 
 #### Interactive CLI Tool (Recommended)
@@ -100,7 +128,12 @@ export MYTHIC_BEASTS_API_SECRET="your_secret"
 mythic-beasts-provision
 ```
 
-The CLI will guide you through selecting options by number:
+The gem ships two interactive CLI tools:
+
+- `mythic-beasts-provision` - provision a new VPS with guided setup
+- `mythic-beasts-manage-vps` - manage existing servers (DNS, proxy, controls)
+
+The provisioning CLI guides you through selecting options by number:
 
 - Selecting product (VPS size)
 - Choosing datacenter/zone
@@ -210,7 +243,17 @@ Available error classes:
 
 See the `examples/` directory for complete working examples:
 
+**DNS:**
+
+- `examples/list_dns.rb` - List all DNS records for a zone
+- `examples/sync_dns.rb` - Sync DNS records from a YAML file (with dry run/apply)
+- `examples/sync_from_octodns.rb` - Sync DNS from OctoDNS zone files (with conflict detection)
+- `examples/verify_email_auth.rb` - Verify SPF, DKIM, and DMARC records
+
+**VPS:**
+
 - `examples/list_zones_and_types.rb` - List available zones and VPS types
+- `examples/list_vps_options.rb` - List all VPS configuration options
 - `examples/provision_vps.rb` - Provision a new VPS server
 - `examples/ipv6_only_vps.rb` - Provision an IPv6-only VPS with proxy setup guide
 
@@ -219,7 +262,8 @@ Run examples with:
 ```bash
 export MYTHIC_BEASTS_API_KEY=your_key
 export MYTHIC_BEASTS_API_SECRET=your_secret
-ruby examples/list_zones_and_types.rb
+ruby examples/list_dns.rb example.com
+ruby examples/verify_email_auth.rb example.com google,mailchimp
 ```
 
 ## Development
@@ -253,7 +297,18 @@ bundle exec bundler-audit check --update    # Run security audit
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/tastybamboo/mythic-beasts.
+Bug reports and pull requests are welcome on GitHub at
+[tastybamboo/mythic-beasts](https://github.com/tastybamboo/mythic-beasts).
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b my-feature`)
+3. Run the test suite (`bundle exec rspec`)
+4. Ensure linting passes (`bundle exec standardrb`)
+5. Commit your changes
+6. Push to the branch and open a Pull Request
+
+This project is intended to be a safe, welcoming space for collaboration.
+Contributors are expected to adhere to the [code of conduct](CODE_OF_CONDUCT.md).
 
 ## Author
 
@@ -266,7 +321,7 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/tastyb
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
-Copyright © 2025, Otaina Limited
+Copyright © 2025-2026, James Inman, Otaina Limited
 
 ## Resources
 

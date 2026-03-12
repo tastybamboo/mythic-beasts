@@ -11,10 +11,24 @@ RSpec.describe MythicBeasts::VPS do
     end
   end
 
+  describe "#servers" do
+    it "fetches all VPS servers using newer endpoint" do
+      expect(client).to receive(:get).with("/vps/servers")
+      vps.servers
+    end
+  end
+
   describe "#get" do
     it "fetches a specific VPS" do
       expect(client).to receive(:get).with("/api/vps/my-server")
       vps.get("my-server")
+    end
+  end
+
+  describe "#server" do
+    it "fetches a specific VPS by identifier using newer endpoint" do
+      expect(client).to receive(:get).with("/vps/servers/my-server-id")
+      vps.server("my-server-id")
     end
   end
 
@@ -72,6 +86,40 @@ RSpec.describe MythicBeasts::VPS do
     end
   end
 
+  describe "#create_with_identifier" do
+    it "creates a new VPS with a custom identifier" do
+      expected_body = {
+        product: "VPSX16",
+        name: "test-server"
+      }
+
+      expect(client).to receive(:post)
+        .with("/beta/vps/servers/custom-id", body: expected_body)
+
+      vps.create_with_identifier("custom-id", product: "VPSX16", name: "test-server")
+    end
+
+    it "includes SSH keys and additional options" do
+      expected_body = {
+        product: "VPSX16",
+        name: "test-server",
+        ssh_keys: "ssh-rsa AAAAB3...",
+        disk_size: 20480,
+        zone: "london"
+      }
+
+      expect(client).to receive(:post)
+        .with("/beta/vps/servers/custom-id", body: expected_body)
+
+      vps.create_with_identifier("custom-id",
+        product: "VPSX16",
+        name: "test-server",
+        ssh_keys: "ssh-rsa AAAAB3...",
+        disk_size: 20480,
+        zone: "london")
+    end
+  end
+
   describe "#start" do
     it "starts a VPS" do
       expect(client).to receive(:post).with("/api/vps/my-server/start")
@@ -93,6 +141,30 @@ RSpec.describe MythicBeasts::VPS do
     end
   end
 
+  describe "#reboot" do
+    it "reboots a VPS by identifier using newer endpoint" do
+      expect(client).to receive(:post).with("/vps/servers/my-server-id/reboot")
+      vps.reboot("my-server-id")
+    end
+  end
+
+  describe "#update" do
+    it "updates a VPS with ISO image" do
+      expected_body = {iso_image: "ubuntu-20.04-live-server.iso"}
+      expect(client).to receive(:patch).with("/vps/servers/my-server-id", body: expected_body)
+      vps.update("my-server-id", iso_image: "ubuntu-20.04-live-server.iso")
+    end
+
+    it "updates a VPS with multiple options" do
+      expected_body = {
+        iso_image: "ubuntu-20.04-live-server.iso",
+        name: "new-name"
+      }
+      expect(client).to receive(:patch).with("/vps/servers/my-server-id", body: expected_body)
+      vps.update("my-server-id", iso_image: "ubuntu-20.04-live-server.iso", name: "new-name")
+    end
+  end
+
   describe "#delete" do
     it "deletes a VPS" do
       expect(client).to receive(:delete).with("/api/vps/my-server")
@@ -100,10 +172,24 @@ RSpec.describe MythicBeasts::VPS do
     end
   end
 
+  describe "#unprovision" do
+    it "permanently deletes a VPS by identifier using newer endpoint" do
+      expect(client).to receive(:delete).with("/beta/vps/servers/my-server-id")
+      vps.unprovision("my-server-id")
+    end
+  end
+
   describe "#console" do
     it "gets console access" do
       expect(client).to receive(:get).with("/api/vps/my-server/console")
       vps.console("my-server")
+    end
+  end
+
+  describe "#iso_images" do
+    it "fetches available ISO images for a specific server" do
+      expect(client).to receive(:get).with("/beta/vps/servers/my-server-id/iso-images")
+      vps.iso_images("my-server-id")
     end
   end
 

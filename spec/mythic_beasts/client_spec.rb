@@ -69,6 +69,25 @@ RSpec.describe MythicBeasts::Client do
     end
   end
 
+  describe "#patch" do
+    it "makes a PATCH request" do
+      stub = stub_request(:patch, "https://api.mythic-beasts.com/test")
+        .with(
+          body: {partial_update: true}.to_json,
+          headers: {
+            "Authorization" => /bearer #{token}/i,
+            "Content-Type" => "application/json"
+          }
+        )
+        .to_return(status: 200, body: {updated: true}.to_json)
+
+      result = client.patch("/test", body: {partial_update: true})
+
+      expect(stub).to have_been_requested
+      expect(result).to eq({"updated" => true})
+    end
+  end
+
   describe "#delete" do
     it "makes a DELETE request" do
       stub = stub_request(:delete, "https://api.mythic-beasts.com/test")
@@ -117,6 +136,10 @@ RSpec.describe MythicBeasts::Client do
 
     it "initializes vps client" do
       expect(client.vps).to be_a(MythicBeasts::VPS)
+    end
+
+    it "initializes proxy client" do
+      expect(client.proxy).to be_a(MythicBeasts::Proxy)
     end
   end
 end

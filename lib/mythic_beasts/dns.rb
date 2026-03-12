@@ -1,3 +1,5 @@
+require_relative "dns/email_auth"
+
 module MythicBeasts
   class DNS
     attr_reader :client
@@ -71,6 +73,40 @@ module MythicBeasts
 
     def create_txt_record(zone, host, text, ttl: 300)
       create_records(zone, [{host: host, ttl: ttl, type: "TXT", data: text}])
+    end
+
+    # Verify all email authentication records (SPF, DKIM, DMARC) for a zone
+    #
+    # @param zone [String] the domain to verify
+    # @param dkim_selectors [Array<String>] DKIM selectors to check
+    # @return [MythicBeasts::DNS::EmailAuth::Result]
+    def verify_email_auth(zone, dkim_selectors: [])
+      EmailAuth.new(self, zone).verify(dkim_selectors: dkim_selectors)
+    end
+
+    # Verify SPF record for a zone
+    #
+    # @param zone [String] the domain to verify
+    # @return [MythicBeasts::DNS::EmailAuth::CheckResult]
+    def verify_spf(zone)
+      EmailAuth.new(self, zone).verify_spf
+    end
+
+    # Verify DMARC record for a zone
+    #
+    # @param zone [String] the domain to verify
+    # @return [MythicBeasts::DNS::EmailAuth::CheckResult]
+    def verify_dmarc(zone)
+      EmailAuth.new(self, zone).verify_dmarc
+    end
+
+    # Verify DKIM record for a specific selector
+    #
+    # @param zone [String] the domain to verify
+    # @param selector [String] the DKIM selector
+    # @return [MythicBeasts::DNS::EmailAuth::CheckResult]
+    def verify_dkim(zone, selector)
+      EmailAuth.new(self, zone).verify_dkim(selector)
     end
   end
 end
