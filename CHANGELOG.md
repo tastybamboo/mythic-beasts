@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-03-12
+
+### Added in 1.0.0
+
+- Email authentication verification (`verify_email_auth`, `verify_spf`, `verify_dmarc`, `verify_dkim`)
+  - Validates SPF records: syntax, lookup count (RFC 7208 limit of 10), multiple record detection
+  - Validates DMARC records: version tag, policy tag, aggregate report configuration
+  - Validates DKIM records: version tag, public key presence and base64 encoding
+  - Returns structured `Result` and `CheckResult` objects for programmatic use
+- New example scripts:
+  - `examples/list_dns.rb` - List all DNS records for a zone
+  - `examples/sync_dns.rb` - Generic DNS sync from YAML with dry run/apply
+  - `examples/sync_from_octodns.rb` - OctoDNS zone file sync with conflict detection
+  - `examples/verify_email_auth.rb` - CLI for email authentication verification
+- README documentation for email authentication verification and DNS examples
+
 ## [0.2.0] - 2025-11-23
 
 ### Added in 0.2.0
